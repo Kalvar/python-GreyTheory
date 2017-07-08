@@ -2,8 +2,14 @@ from grey_class import *
 
 class GreyGM1N (GreyClass):
 
+    def add_outputs(self, outputs, pattern_key):
+        self._add_outputs(outputs, pattern_key)
+    
+    def add_patterns(self, patterns, pattern_key):
+        self._add_patterns(patterns, pattern_key)
+
     def analyze(self):
-        ago = self.ago()
+        ago = self.ago(self.patterns)
         ago_boxes = ago[0]
         z_boxes   = ago[1]
 

@@ -1,11 +1,4 @@
-from packages.models.grey_gm0n import GreyGM0N
-from packages.models.grey_gm1n import GreyGM1N
-
-class GreyTheory:
-    def __init__(self):
-        self.gm0n = GreyGM0N()
-        self.gm1n = GreyGM1N()
-
+from grey_theory import GreyTheory
 
 grey = GreyTheory()
 
@@ -38,3 +31,15 @@ gm1n.analyze()
 # Looks GM1N the results as below:
 gm1n.print_analyzed_results()
 gm1n.print_influence_degrees()
+
+# GM11
+gm11 = grey.gm11
+
+gm11.add_pattern(533.0, "x1")
+gm11.add_pattern(665.0, "x2")
+gm11.add_pattern(655.0, "x3")
+gm11.add_pattern(740.0, "x4")
+gm11.forecast()
+
+# Looks GM11 the results for example as below:
+gm11.print_forecasted_results()

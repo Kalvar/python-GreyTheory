@@ -1,7 +1,7 @@
 
 class GreyFactory:
 
-    name = ""
+    name           = ""
     equation_value = ""
-    ranking = ""
+    ranking        = ""
     
