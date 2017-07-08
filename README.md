@@ -1,6 +1,6 @@
 ## About
 
-Grey Theory System that means uncertain relationships between the various factors within the system, this system in which part of information is known and another part is unknown. Grey Theory has 3 methods are : GM0N, GM1N, GM11.
+Grey Theory System that means uncertain relationships between the various factors within the system, this system in which part of information is known and another part is unknown. This theory has 3 methods are : GM0N, GM1N, GM11.
 
 [Grey Relational Analysis](https://en.wikipedia.org/wiki/Grey_relational_analysis) <br />
 [灰色系統理論](http://wiki.mbalib.com/zh-tw/%E7%81%B0%E8%89%B2%E7%B3%BB%E7%BB%9F%E7%90%86%E8%AE%BA) <br />
