@@ -1,0 +1,80 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+GreyClass	../packages/models/grey_class.py	/^class GreyClass (object):$/;"	kind:class	line:7
+GreyFactory	../packages/models/grey_class.py	/^from grey_factory import GreyFactory$/;"	kind:namespace	line:4
+GreyFactory	../packages/models/grey_factory.py	/^class GreyFactory:$/;"	kind:class	line:2
+GreyForecast	../packages/models/grey_class.py	/^from grey_forecast import GreyForecast$/;"	kind:namespace	line:5
+GreyForecast	../packages/models/grey_forecast.py	/^class GreyForecast:$/;"	kind:class	line:2
+GreyGM0N	../grey_theory.py	/^from packages.models.grey_gm0n import GreyGM0N$/;"	kind:namespace	line:1
+GreyGM0N	../packages/models/grey_gm0n.py	/^class GreyGM0N (GreyClass):$/;"	kind:class	line:3
+GreyGM11	../grey_theory.py	/^from packages.models.grey_gm11 import GreyGM11$/;"	kind:namespace	line:3
+GreyGM11	../packages/models/grey_gm11.py	/^class GreyGM11 (GreyClass):$/;"	kind:class	line:4
+GreyGM1N	../grey_theory.py	/^from packages.models.grey_gm1n import GreyGM1N$/;"	kind:namespace	line:2
+GreyGM1N	../packages/models/grey_gm1n.py	/^class GreyGM1N (GreyClass):$/;"	kind:class	line:3
+GreyLib	../packages/libs/grey_lib.py	/^class GreyLib:$/;"	kind:class	line:3
+GreyLib	../packages/models/grey_class.py	/^from ..libs.grey_lib import GreyLib$/;"	kind:namespace	line:2
+GreyMath	../packages/libs/grey_math.py	/^class GreyMath:$/;"	kind:class	line:3
+GreyMath	../packages/models/grey_class.py	/^from ..libs.grey_math import GreyMath$/;"	kind:namespace	line:3
+GreyTheory	../example.py	/^from grey_theory import GreyTheory$/;"	kind:namespace	line:1
+GreyTheory	../grey_theory.py	/^class GreyTheory:$/;"	kind:class	line:5
+_TAG_FORECAST_HISTORY	../packages/models/grey_class.py	/^    _TAG_FORECAST_HISTORY     = "history"$/;"	kind:variable	line:10
+_TAG_FORECAST_NEXT_MOMENT	../packages/models/grey_class.py	/^    _TAG_FORECAST_NEXT_MOMENT = "forecasted_next_moment"$/;"	kind:variable	line:9
+__forecast_value	../packages/models/grey_gm11.py	/^    def __forecast_value(self, x1, a_value, b_value, k):$/;"	kind:member	line:10
+__init__	../grey_theory.py	/^    def __init__(self):$/;"	kind:member	line:6
+__init__	../packages/libs/grey_lib.py	/^    def __init__(self, alpha=0.5):$/;"	kind:member	line:5
+__init__	../packages/models/grey_class.py	/^    def __init__(self):$/;"	kind:member	line:12
+__init__	../packages/models/grey_gm11.py	/^    def __init__(self):$/;"	kind:member	line:6
+__init__.py	../__init__.py	1;"	kind:file	line:1
+__init__.py	../packages/__init__.py	1;"	kind:file	line:1
+__init__.py	../packages/libs/__init__.py	1;"	kind:file	line:1
+__init__.py	../packages/models/__init__.py	1;"	kind:file	line:1
+_add_outputs	../packages/models/grey_class.py	/^    def _add_outputs(self, outputs, pattern_key):$/;"	kind:member	line:22
+_add_patterns	../packages/models/grey_class.py	/^    def _add_patterns(self, patterns, pattern_key):$/;"	kind:member	line:27
+add_outputs	../packages/models/grey_gm0n.py	/^    def add_outputs(self, outputs, pattern_key):$/;"	kind:member	line:5
+add_outputs	../packages/models/grey_gm1n.py	/^    def add_outputs(self, outputs, pattern_key):$/;"	kind:member	line:5
+add_pattern	../packages/models/grey_gm11.py	/^    def add_pattern(self, pattern, pattern_key):$/;"	kind:member	line:13
+add_patterns	../packages/models/grey_gm0n.py	/^    def add_patterns(self, patterns, pattern_key):$/;"	kind:member	line:8
+add_patterns	../packages/models/grey_gm1n.py	/^    def add_patterns(self, patterns, pattern_key):$/;"	kind:member	line:8
+ago	../packages/libs/grey_lib.py	/^    def ago(self, patterns):$/;"	kind:member	line:9
+ago	../packages/models/grey_class.py	/^    def ago(self, patterns):$/;"	kind:member	line:31
+analyze	../packages/models/grey_gm0n.py	/^    def analyze(self):$/;"	kind:member	line:11
+analyze	../packages/models/grey_gm1n.py	/^    def analyze(self):$/;"	kind:member	line:11
+average_error_rate	../packages/models/grey_forecast.py	/^    average_error_rate = 0.0$/;"	kind:variable	line:9
+equation_value	../packages/models/grey_factory.py	/^    equation_value = ""$/;"	kind:variable	line:5
+error_rate	../packages/models/grey_forecast.py	/^    error_rate     = 0.0$/;"	kind:variable	line:8
+example.py	../example.py	1;"	kind:file	line:1
+forecast	../packages/models/grey_gm11.py	/^    def forecast(self, continuous_period = 1):$/;"	kind:member	line:16
+forecast_value	../packages/models/grey_forecast.py	/^    forecast_value = 0.0$/;"	kind:variable	line:7
+gm0n	../example.py	/^gm0n = grey.gm0n$/;"	kind:variable	line:6
+gm11	../example.py	/^gm11 = grey.gm11$/;"	kind:variable	line:36
+gm1n	../example.py	/^gm1n = grey.gm1n$/;"	kind:variable	line:21
+grey	../example.py	/^grey = GreyTheory()$/;"	kind:variable	line:3
+grey_class.py	../packages/models/grey_class.py	1;"	kind:file	line:1
+grey_factory.py	../packages/models/grey_factory.py	1;"	kind:file	line:1
+grey_forecast.py	../packages/models/grey_forecast.py	1;"	kind:file	line:1
+grey_gm0n.py	../packages/models/grey_gm0n.py	1;"	kind:file	line:1
+grey_gm11.py	../packages/models/grey_gm11.py	1;"	kind:file	line:1
+grey_gm1n.py	../packages/models/grey_gm1n.py	1;"	kind:file	line:1
+grey_lib.py	../packages/libs/grey_lib.py	1;"	kind:file	line:1
+grey_math.py	../packages/libs/grey_math.py	1;"	kind:file	line:1
+grey_theory.py	../grey_theory.py	1;"	kind:file	line:1
+k	../packages/models/grey_forecast.py	/^    k   = 0$/;"	kind:variable	line:5
+math	../packages/models/grey_gm11.py	/^import math$/;"	kind:namespace	line:2
+name	../packages/models/grey_factory.py	/^    name           = ""$/;"	kind:variable	line:4
+next_moment	../packages/models/grey_gm11.py	/^    def next_moment(self):$/;"	kind:member	line:74
+np	../packages/libs/grey_lib.py	/^import numpy as np$/;"	kind:namespace	line:1
+np	../packages/libs/grey_math.py	/^import numpy as np$/;"	kind:namespace	line:1
+np	../packages/models/grey_class.py	/^import numpy as np$/;"	kind:namespace	line:1
+original_value	../packages/models/grey_forecast.py	/^    original_value = 0.0$/;"	kind:variable	line:6
+print_analyzed_results	../packages/models/grey_class.py	/^    def print_analyzed_results(self):$/;"	kind:member	line:48
+print_forecasted_results	../packages/models/grey_class.py	/^    def print_forecasted_results(self):$/;"	kind:member	line:58
+print_influence_degrees	../packages/models/grey_class.py	/^    def print_influence_degrees(self):$/;"	kind:member	line:53
+print_self	../packages/models/grey_class.py	/^    def print_self(self):$/;"	kind:member	line:45
+ranking	../packages/models/grey_factory.py	/^    ranking        = ""$/;"	kind:variable	line:6
+remove_all_analysis	../packages/models/grey_class.py	/^    def remove_all_analysis(self):$/;"	kind:member	line:34
+solve_equations	../packages/libs/grey_math.py	/^    def solve_equations(self, equations, equals):$/;"	kind:member	line:6
+tag	../packages/models/grey_forecast.py	/^    tag = ""$/;"	kind:variable	line:4

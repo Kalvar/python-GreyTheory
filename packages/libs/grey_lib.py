@@ -2,6 +2,9 @@ import numpy as np
 
 class GreyLib:
     
+    def __init__(self, alpha=0.5):
+        self.alpha = alpha
+
     # Generates AGO via patterns.
     def ago(self, patterns):
         # do ago
@@ -19,8 +22,8 @@ class GreyLib:
                 x_ago.append(sum)
                 # Only first pattern need to calculate the Z value.
                 if pattern_index == 0 and x_index > 0:
-                    # z is mean value = (sum + x_ago[x_index - 1]) / 2
-                    z_value = (0.5 * sum) + (0.5 * x_ago[x_index - 1])
+                    # Alpha 0.5 that means z is mean value, others alpha number means z is IAGO.
+                    z_value = (self.alpha * sum) + (self.alpha * x_ago[x_index - 1])
                     z_boxes.append(z_value)
                 x_index += 1
             ago_boxes.append(x_ago)

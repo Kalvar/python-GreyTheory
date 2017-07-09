@@ -118,6 +118,15 @@ The average error rate 0.0040857633673527785
 """
 ```
 
+#### Alpha for Z
+``` python
+# For example, if you wanna customize alpha value to reduce error-rate of prediction before calculate AGO, 
+# Directly try to setup the alpha value before start .analyze() and .forecast().
+gm11.grey_lib.alpha = 0.8
+gm11.add_pattern() 
+gm11.forecast()
+```
+
 ## Version
 
 V1.1
