@@ -6,7 +6,8 @@ Grey Theory System that means uncertain relationships between the various factor
 [灰色系統理論](http://wiki.mbalib.com/zh-tw/%E7%81%B0%E8%89%B2%E7%B3%BB%E7%BB%9F%E7%90%86%E8%AE%BA) <br />
 [灰色關聯分析](http://wiki.mbalib.com/zh-tw/%E7%81%B0%E8%89%B2%E5%85%B3%E8%81%94%E5%88%86%E6%9E%90) <br />
 [灰色預測法](http://wiki.mbalib.com/zh-tw/%E7%81%B0%E8%89%B2%E9%A2%84%E6%B5%8B%E6%B3%95) <br />
-[《Grey system theory-based models in time series prediction》2009.](http://www.mecha.ee.boun.edu.tr/Prof.%20Dr.%20Okyay%20Kaynak%20Publications/c%20Journal%20Papers(appearing%20in%20SCI%20or%20SCIE%20or%20CompuMath)/62.pdf)
+[《Grey system theory-based models in time series prediction》2009.](http://www.mecha.ee.boun.edu.tr/Prof.%20Dr.%20Okyay%20Kaynak%20Publications/c%20Journal%20Papers(appearing%20in%20SCI%20or%20SCIE%20or%20CompuMath)/62.pdf) <br />
+[改良式 GM(1,1)灰預測模型於台電電量需求預測之研究](http://www.engh.kuas.edu.tw/files/ne/pnz67gteh2.pdf)
 
 ## How To Get Started
 
