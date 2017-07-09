@@ -36,7 +36,7 @@ gm1n.print_influence_degrees()
 gm11 = grey.gm11
 
 # To try customized alpha for IAGO of Z.
-gm11.grey_lib.alpha = 0.8
+gm11.alpha = 0.8
 
 # gm11.add_pattern(533.0, "x1")
 # gm11.add_pattern(665.0, "x2")

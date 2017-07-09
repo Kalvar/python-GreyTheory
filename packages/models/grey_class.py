@@ -70,3 +70,11 @@ class GreyClass (object):
         # Last forecasted moment.
         last_moment = self.analyzed_results[-1]
         print "The average error rate %r" % last_moment.average_error_rate
+
+    @property
+    def alpha(self):
+        return self.grey_lib.alpha
+    
+    @alpha.setter
+    def alpha(self, value = 0.5):
+        self.grey_lib.alpha = value
