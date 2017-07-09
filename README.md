@@ -75,31 +75,50 @@ The keys of parameters their influence degrees (ordering): 'x2 > x4 > x3 > x5'
 ``` python
 gm11 = grey.gm11
 
-gm11.add_pattern(533.0, "x1")
-gm11.add_pattern(665.0, "x2")
-gm11.add_pattern(655.0, "x3")
-gm11.add_pattern(740.0, "x4")
-gm11.forecast()
+gm11.add_pattern(223.3, "a1")
+gm11.add_pattern(227.3, "a2")
+gm11.add_pattern(230.5, "a3")
+gm11.add_pattern(238.1, "a4")
+gm11.add_pattern(242.9, "a5")
+gm11.add_pattern(251.1, "a6")
+
+gm11.forecast(5) # Default is 1, the parameter means how many next moments need to forcast continually.
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()
 """
-From original value 665.0 to forecasted value is 648.45
-The error rate is 0.02487630752001459 and k is 1
-From original value 655.0 to forecasted value is 685.72
-The error rate is 0.0469 and k is 2
-Forcated next moment value is 766.8 and the average error rate 0.03
-The k is 4
+K = 1
+From original value 227.3 to forecasted value is 226.08736263692822
+The error rate is 0.005334964201811667
+K = 2
+From original value 230.5 to forecasted value is 231.87637984134398
+The error rate is 0.005971279138151739
+K = 3
+From original value 238.1 to forecasted value is 237.81362611881437
+The error rate is 0.0012027462460547044
+K = 4
+From original value 242.9 to forecasted value is 243.9028969077225
+The error rate is 0.00412884688234865
+K = 5
+From original value 251.1 to forecasted value is 250.14808482949547
+The error rate is 0.003790980368397134
+K = 6
+Forcated next moment value is 256.55318217699795
+K = 7
+Forcated next moment value is 263.1222834666411
+K = 8
+Forcated next moment value is 269.85958805583954
+K = 9
+Forcated next moment value is 276.76940282748853
+K = 10
+Forcated next moment value is 283.85614494317775
+The average error rate 0.0040857633673527785
 """
 ```
 
-## Todolist
-
-1. GM11 achieves calculation of continuous time-series. <br/>
-
 ## Version
 
-V1.0
+V1.1
 
 ## LICENSE
 

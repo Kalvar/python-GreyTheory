@@ -9,6 +9,8 @@ class GreyGM1N (GreyClass):
         self._add_patterns(patterns, pattern_key)
 
     def analyze(self):
+        self.remove_all_analysis()
+        
         ago = self.ago(self.patterns)
         ago_boxes = ago[0]
         z_boxes   = ago[1]
@@ -42,12 +44,12 @@ class GreyGM1N (GreyClass):
                 goal_factory = grey_factory
 
         self.analyzed_results = sorted(sorts, key=lambda factory: factory.equation_value, reverse=True)
-        self.analyzed_results.insert(0, goal_factory) # The output-goal always is number 1.
+        self.analyzed_results.insert(0, goal_factory) # The output-goal always is first object in solved_equations array.
         ranking = -1
         for grey_factory in self.analyzed_results:
             ranking += 1
             grey_factory.ranking = ranking
-            # Raning 0 is the output-goal (a), the output-goal is not the influence degree, 
+            # Ranking 0 is the output-goal (a), the output-goal is not the influence degree, 
             # Other paramenters are the real influence degrees of GM1N.
             if ranking > 0:
                 self.influence_degrees.append(grey_factory.name)

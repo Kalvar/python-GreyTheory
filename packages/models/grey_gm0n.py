@@ -9,6 +9,8 @@ class GreyGM0N (GreyClass):
         self._add_patterns(patterns, pattern_key)
 
     def analyze(self):
+        self.remove_all_analysis()
+        
         ago       = self.ago(self.patterns)
         ago_boxes = ago[0]
         z_boxes   = ago[1] # X

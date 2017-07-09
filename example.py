@@ -35,11 +35,19 @@ gm1n.print_influence_degrees()
 # GM11
 gm11 = grey.gm11
 
-gm11.add_pattern(533.0, "x1")
-gm11.add_pattern(665.0, "x2")
-gm11.add_pattern(655.0, "x3")
-gm11.add_pattern(740.0, "x4")
-gm11.forecast()
+# gm11.add_pattern(533.0, "x1")
+# gm11.add_pattern(665.0, "x2")
+# gm11.add_pattern(655.0, "x3")
+# gm11.add_pattern(740.0, "x4")
+
+gm11.add_pattern(223.3, "a1")
+gm11.add_pattern(227.3, "a2")
+gm11.add_pattern(230.5, "a3")
+gm11.add_pattern(238.1, "a4")
+gm11.add_pattern(242.9, "a5")
+gm11.add_pattern(251.1, "a6")
+
+gm11.forecast(5) # Default is 1, the parameter means how many next moments need to forcast continually.
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()

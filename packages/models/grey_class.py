@@ -6,6 +6,9 @@ from grey_forecast import GreyForecast
 
 class GreyClass (object):
 
+    _TAG_FORECAST_NEXT_MOMENT = "forecasted_next_moment"
+    _TAG_FORECAST_HISTORY     = "history"
+
     def __init__(self):
         self.patterns          = []
         self.keys              = []
@@ -28,25 +31,42 @@ class GreyClass (object):
     def ago(self, patterns):
         return self.grey_lib.ago(patterns)
     
+    def remove_all_analysis(self):
+        # Deeply removing without others copied array.
+        self.analyzed_results  = []
+        self.influence_degrees = []
+        self.forecasts         = []
+
+        # Removing all reference links with others array.
+        #del self.analyzed_results
+        #del self.influence_degrees
+        #del self.forecasts
+
     def print_self(self):
         print "%r" % self.__class__.__name__
 
     def print_analyzed_results(self):
         self.print_self()
         for factory in self.analyzed_results:
-            print "Result, pattern key: %r, grey value: %r, ranking: %r" % (factory.name, factory.equation_value, factory.ranking)
+            print "Pattern key: %r, grey value: %r, ranking: %r" % (factory.name, factory.equation_value, factory.ranking)
 
     def print_influence_degrees(self):
         self.print_self()
         string = " > ".join(self.influence_degrees)
-        print "Result, The keys of parameters their influence degrees (ordering): %r" % string
+        print "The keys of parameters their influence degrees (ordering): %r" % string
 
     def print_forecasted_results(self):
         self.print_self()
-        for forecast in self.analyzed_results[0:-2]:
-            print "Result, from original value %r to forecasted value is %r" % (forecast.original_value, forecast.forecast_value)
-            print "The error rate is %r and k is %r" % (forecast.error_rate, forecast.k)
+        for forecast in self.analyzed_results:
+            print "K = %r" % forecast.k
+            if forecast.tag == self._TAG_FORECAST_HISTORY:
+                # History.
+                print "From original value %r to forecasted value is %r" % (forecast.original_value, forecast.forecast_value)
+                print "The error rate is %r" % forecast.error_rate
+            else:
+                # Next moments.
+                print "Forcated next moment value is %r" % forecast.forecast_value
         
-        next_moment = self.analyzed_results[-1]
-        print "Forcated next moment value is %r and the average error rate %r" % (next_moment.forecast_value, next_moment.average_error_rate)
-        print "The k is %r" % next_moment.k
+        # Last forecasted moment.
+        last_moment = self.analyzed_results[-1]
+        print "The average error rate %r" % last_moment.average_error_rate

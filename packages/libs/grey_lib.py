@@ -19,6 +19,7 @@ class GreyLib:
                 x_ago.append(sum)
                 # Only first pattern need to calculate the Z value.
                 if pattern_index == 0 and x_index > 0:
+                    # z is mean value = (sum + x_ago[x_index - 1]) / 2
                     z_value = (0.5 * sum) + (0.5 * x_ago[x_index - 1])
                     z_boxes.append(z_value)
                 x_index += 1
