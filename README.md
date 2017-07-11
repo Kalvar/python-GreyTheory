@@ -118,6 +118,23 @@ The average error rate 0.0040857633673527785
 """
 ```
 
+#### GM11 Convolutional Forecasting
+``` python
+# Convolutional forecasting of GM11, forecast_convolution(stride, length)
+gm11.forecast_convolution(1, 4) 
+
+# To record last forecasted result.
+last_forecasted_results = gm11.forecasted_outputs
+
+# To clean all forecasted results. 
+gm11.clean_forecasted()
+
+# In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
+# but if we removed gm11.forecasted_outputs list before,  
+# we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
+gm11.continue_forecasting(last_forecasted_results)
+```
+
 #### Alpha for Z
 ``` python
 # For example, if you wanna customize alpha value to reduce error-rate of prediction before calculate AGO, 
@@ -129,8 +146,18 @@ gm11.forecast()
 
 ## Version
 
-V1.1
+V1.2
 
 ## LICENSE
 
 MIT.
+
+## Note
+
+卷積的部份，是跑 2 層的 GM11:
+1 -> 2 -> 3, 預測 4 
+2 -> 3 -> 4, 預測 5
+3 -> 4 -> 5, 預測 6
+... 其餘類推
+
+之後會把預測 4，5，6 再丟進去 GM11 跑最終結果。等於是先做一次特徵提取，第 1 層提取每一個區間的預測輸出，再對這預測輸出做平均誤差的修正，而後再丟入第 2 層的 GM11 去做總輸出。

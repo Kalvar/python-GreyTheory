@@ -36,7 +36,7 @@ gm1n.print_influence_degrees()
 gm11 = grey.gm11
 
 # To try customized alpha for IAGO of Z.
-gm11.alpha = 0.8
+gm11.alpha = 0.5
 
 # gm11.add_pattern(533.0, "x1")
 # gm11.add_pattern(665.0, "x2")
@@ -50,7 +50,19 @@ gm11.add_pattern(238.1, "a4")
 gm11.add_pattern(242.9, "a5")
 gm11.add_pattern(251.1, "a6")
 
-gm11.forecast(5) # Default is 1, the parameter means how many next moments need to forcast continually.
+#gm11.forecast(1) # Default is 1, the parameter means how many next moments need to forcast continually.
+gm11.forecast_convolution(1, 4) # Convolutional forecasting of GM11.
+
+# To record last forecasted result.
+#last_forecasted_results = gm11.forecasted_outputs
+
+# To clean all forecasted results. 
+#gm11.clean_forecasted()
+
+# In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
+# but if we removed gm11.forecasted_outputs list before,  
+# we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
+#gm11.continue_forecasting(last_forecasted_results)
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()

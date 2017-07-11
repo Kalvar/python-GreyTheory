@@ -14,7 +14,6 @@ class GreyClass (object):
         self.keys              = []
         self.analyzed_results  = []
         self.influence_degrees = []
-        self.forecasts         = []
         self.grey_lib          = GreyLib()
         self.grey_math         = GreyMath()
     
