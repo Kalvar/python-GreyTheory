@@ -1,6 +1,10 @@
+#!/usr/bin/python 
+# -*- coding: utf-8 -*-
+
 from grey_theory import GreyTheory
 
 grey = GreyTheory()
+
 
 # GM0N
 gm0n = grey.gm0n
@@ -37,6 +41,9 @@ gm11 = grey.gm11
 
 # To try customized alpha for IAGO of Z.
 gm11.alpha = 0.5
+gm11.convolution = True # Convolutional forecasting of GM11.
+gm11.stride = 1 
+gm11.length = 4
 
 # gm11.add_pattern(533.0, "x1")
 # gm11.add_pattern(665.0, "x2")
@@ -50,8 +57,7 @@ gm11.add_pattern(238.1, "a4")
 gm11.add_pattern(242.9, "a5")
 gm11.add_pattern(251.1, "a6")
 
-#gm11.forecast(1) # Default is 1, the parameter means how many next moments need to forcast continually.
-gm11.forecast_convolution(1, 4) # Convolutional forecasting of GM11.
+gm11.forecast()
 
 # To record last forecasted result.
 #last_forecasted_results = gm11.forecasted_outputs
@@ -61,8 +67,42 @@ gm11.forecast_convolution(1, 4) # Convolutional forecasting of GM11.
 
 # In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
 # but if we removed gm11.forecasted_outputs list before,  
-# we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
+# we can use continue_forecasting() to extend / recall the last for ecasted result come back to be convolutional features. 
 #gm11.continue_forecasting(last_forecasted_results)
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()
+
+"""
+# multiprocessing examples:
+# for GM0N, GM1N
+queue = []
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+
+grey.run.gm0n(queue)
+
+for gm in queue:
+    gm.print_influence_degrees()
+
+# for GM11
+gm11_queue = []
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+
+grey.run.gm11(gm11_queue)
+
+for gm in gm11_queue:
+    gm.print_forecasted_results()
+
+"""

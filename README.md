@@ -84,7 +84,7 @@ gm11.add_pattern(238.1, "a4")
 gm11.add_pattern(242.9, "a5")
 gm11.add_pattern(251.1, "a6")
 
-gm11.forecast(5) # Default is 1, the parameter means how many next moments need to forcast continually.
+gm11.forecast(2) # Default is 1, the parameter means how many next moments need to forcast continually.
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()
@@ -108,11 +108,6 @@ K = 6
 Forcated next moment value is 256.55318217699795
 K = 7
 Forcated next moment value is 263.1222834666411
-K = 8
-Forcated next moment value is 269.85958805583954
-K = 9
-Forcated next moment value is 276.76940282748853
-K = 10
 Forcated next moment value is 283.85614494317775
 The average error rate 0.0040857633673527785
 """
@@ -144,9 +139,47 @@ gm11.add_pattern()
 gm11.forecast()
 ```
 
+#### Multi-Processing
+``` python
+# multiprocessing examples:
+# for GM0N, GM1N
+queue = []
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+queue.append(gm0n.deepcopy())
+
+grey.run.gm0n(queue)
+
+for gm in queue:
+    gm.print_influence_degrees()
+```
+
+<br />
+
+``` python
+# for GM11
+gm11_queue = []
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+gm11_queue.append(gm11.deepcopy())
+
+grey.run.gm11(gm11_queue)
+
+for gm in gm11_queue:
+    gm.print_forecasted_results()
+```
+
 ## Version
 
-V1.2
+V1.3
 
 ## LICENSE
 

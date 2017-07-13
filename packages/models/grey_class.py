@@ -1,3 +1,7 @@
+#!/usr/bin/python 
+# -*- coding: utf-8 -*-
+
+import copy
 import numpy as np
 from ..libs.grey_lib import GreyLib
 from ..libs.grey_math import GreyMath
@@ -10,6 +14,7 @@ class GreyClass (object):
     _TAG_FORECAST_HISTORY     = "history"
 
     def __init__(self):
+        self.tag               = self.__class__.__name__
         self.patterns          = []
         self.keys              = []
         self.analyzed_results  = []
@@ -69,6 +74,9 @@ class GreyClass (object):
         # Last forecasted moment.
         last_moment = self.analyzed_results[-1]
         print "The average error rate %r" % last_moment.average_error_rate
+
+    def deepcopy(self):
+        return copy.deepcopy(self)
 
     @property
     def alpha(self):

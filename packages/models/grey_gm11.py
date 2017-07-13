@@ -1,11 +1,18 @@
+#!/usr/bin/python 
+# -*- coding: utf-8 -*-
+
 from grey_class import *
 import math
 
 class GreyGM11 (GreyClass):
 
     def __init__(self):
-        super(GreyGM11, self).__init__()
+        super(GreyGM11, self).__init__() # Calling super object __init__
         self.forecasted_outputs = []
+        self.stride      = 1
+        self.length      = 4
+        self.period      = 1 # Default is 1, the parameter means how many next moments need to forcast continually.
+        self.convolution = False
     
     def add_pattern(self, pattern, pattern_key):
         self._add_patterns(pattern, pattern_key)
@@ -71,28 +78,25 @@ class GreyGM11 (GreyClass):
 
         self.analyzed_results = analyzed_results
         return analyzed_results
-    
-    def forecast(self, period=1):
-        self.__forecast(self.patterns, period)
 
     # stride: the N-gram, shift step-size for each forecasting.
     # length: the Filter kernel, shift length of distance for each forecasting.
-    def forecast_convolution(self, stride=1, length=4):
-        pattern_count = len(self.patterns)
+    def __forecast_convolution(self, patterns=[], stride=1, length=4):
+        pattern_count = len(patterns)
         # Convolution formula: (pattern_count - length) / stride + 1, 
         # e.g. (7 - 3) / 1 + 1 = 5 (Needs to shift 5 times.)
         # e.g. (7 - 3) / 3 + 1 = 2.33, to get floor() or ceil()
         # total_times at least for once.
-        total_times  = long(math.floor((pattern_count - length) / stride + 1))
+        total_times  = long(math.floor(float(pattern_count - length) / stride + 1))
         convolutions = []
         stride_index = 0
         for i in range(0, total_times):
             # If it is last convolution, we directly pick it all.
             stride_length = stride_index+length
             if i == total_times - 1:
-                stride_length = len(self.patterns)
+                stride_length = len(patterns)
 
-            convolution_patterns = self.patterns[stride_index:stride_length]
+            convolution_patterns = patterns[stride_index:stride_length]
             period_forecasts     = self.__forecast(convolution_patterns)
             convolutions.append(period_forecasts)
 
@@ -114,6 +118,13 @@ class GreyGM11 (GreyClass):
         
         return convolutions
     
+    # period: 連續預測多長的時間區間, default: 只預測下一刻
+    def forecast(self):
+        if self.convolution == True:
+            return self.__forecast_convolution(self.patterns, self.stride, self.length)
+        else:
+            return self.__forecast(self.patterns, self.period)
+
     # In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
     # but if we removed gm11.forecasted_outputs list before,  
     # we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
@@ -123,7 +134,7 @@ class GreyGM11 (GreyClass):
     # Clean forecasted outputs.
     def clean_forecasted(self):
         self.forecasted_outputs = []
-
+        
     @property
     def last_moment(self):
         # Last GreyForecast() object is the next moment forecasted.
