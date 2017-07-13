@@ -158,8 +158,6 @@ for gm in queue:
     gm.print_influence_degrees()
 ```
 
-<br />
-
 ``` python
 # for GM11
 gm11_queue = []
