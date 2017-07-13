@@ -140,6 +140,9 @@ gm11.forecast()
 ```
 
 #### Multi-Processing
+1. Put objects of gm0n, gm1n or gm11 into their own arrays. <br />
+2. Run specific functions are: grey.run.gm0n(array), grey.run.gm1n(array) or grey.run.gm11(array). <br />
+3. Enumerate the arrays, or enumerate .run.gm0n(), .run.gm1n() and .run.gm11() they returned arrays.
 ``` python
 # multiprocessing examples:
 # for GM0N, GM1N
