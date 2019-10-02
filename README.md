@@ -9,11 +9,17 @@ Grey Theory System that means uncertain relationships between the various factor
 [《Grey system theory-based models in time series prediction》2009.](http://www.mecha.ee.boun.edu.tr/Prof.%20Dr.%20Okyay%20Kaynak%20Publications/c%20Journal%20Papers(appearing%20in%20SCI%20or%20SCIE%20or%20CompuMath)/62.pdf) <br />
 [改良式 GM(1,1)灰預測模型於台電電量需求預測之研究](http://www.engh.kuas.edu.tw/files/ne/pnz67gteh2.pdf)
 
-## How To Get Started
+## How to Install
+Now install version is 0.1.
+```console
+pip3 install greytheory
+```
+
+## How to Use
 
 #### Import
 ``` python
-from grey_theory import GreyTheory
+from greytheory import GreyTheory
 grey = GreyTheory()
 ```
 
@@ -180,7 +186,7 @@ for gm in gm11_queue:
 
 ## Version
 
-V1.3
+V1.3.1
 
 ## LICENSE
 
