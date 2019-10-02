@@ -21,7 +21,7 @@ class GreyRun:
         pool        = mp.Pool()
         cpu_count   = self.cpu_count
         length      = len(gmnn_queue)
-        block_count = long(math.ceil(length / float(cpu_count)))
+        block_count = int(math.ceil(length / float(cpu_count)))
         start_index = 0
         end_length  = cpu_count
         for block in xrange(0, block_count):

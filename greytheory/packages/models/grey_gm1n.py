@@ -1,4 +1,4 @@
-from grey_class import *
+from .grey_class import *
 
 class GreyGM1N (GreyClass):
 

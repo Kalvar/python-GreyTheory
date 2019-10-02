@@ -5,8 +5,8 @@ import copy
 import numpy as np
 from ..libs.grey_lib import GreyLib
 from ..libs.grey_math import GreyMath
-from grey_factory import GreyFactory
-from grey_forecast import GreyForecast
+from .grey_factory import GreyFactory
+from .grey_forecast import GreyForecast
 
 class GreyClass (object):
 
@@ -47,33 +47,33 @@ class GreyClass (object):
         #del self.forecasts
 
     def print_self(self):
-        print "%r" % self.__class__.__name__
+        print("%r" % self.__class__.__name__)
 
     def print_analyzed_results(self):
         self.print_self()
         for factory in self.analyzed_results:
-            print "Pattern key: %r, grey value: %r, ranking: %r" % (factory.name, factory.equation_value, factory.ranking)
+            print("Pattern key: %r, grey value: %r, ranking: %r" % (factory.name, factory.equation_value, factory.ranking))
 
     def print_influence_degrees(self):
         self.print_self()
         string = " > ".join(self.influence_degrees)
-        print "The keys of parameters their influence degrees (ordering): %r" % string
+        print("The keys of parameters their influence degrees (ordering): %r" % string)
 
     def print_forecasted_results(self):
         self.print_self()
         for forecast in self.analyzed_results:
-            print "K = %r" % forecast.k
+            print("K = %r" % forecast.k)
             if forecast.tag == self._TAG_FORECAST_HISTORY:
                 # History.
-                print "From original value %r to forecasted value is %r" % (forecast.original_value, forecast.forecast_value)
-                print "The error rate is %r" % forecast.error_rate
+                print("From original value %r to forecasted value is %r" % (forecast.original_value, forecast.forecast_value))
+                print("The error rate is %r" % forecast.error_rate)
             else:
                 # Next moments.
-                print "Forcated next moment value is %r" % forecast.forecast_value
+                print("Forcated next moment value is %r" % forecast.forecast_value)
         
         # Last forecasted moment.
         last_moment = self.analyzed_results[-1]
-        print "The average error rate %r" % last_moment.average_error_rate
+        print("The average error rate %r" % last_moment.average_error_rate)
 
     def deepcopy(self):
         return copy.deepcopy(self)
