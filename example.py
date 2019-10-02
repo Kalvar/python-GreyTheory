@@ -1,7 +1,7 @@
 #!/usr/bin/python 
 # -*- coding: utf-8 -*-
 
-from grey_theory import GreyTheory
+from greytheory import GreyTheory
 
 grey = GreyTheory()
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python 
 # -*- coding: utf-8 -*-
 
-from grey_class import *
+from .grey_class import *
 import math
 
 class GreyGM11 (GreyClass):
@@ -87,7 +87,7 @@ class GreyGM11 (GreyClass):
         # e.g. (7 - 3) / 1 + 1 = 5 (Needs to shift 5 times.)
         # e.g. (7 - 3) / 3 + 1 = 2.33, to get floor() or ceil()
         # total_times at least for once.
-        total_times  = long(math.floor(float(pattern_count - length) / stride + 1))
+        total_times  = int(math.floor(float(pattern_count - length) / stride + 1))
         convolutions = []
         stride_index = 0
         for i in range(0, total_times):
