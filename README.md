@@ -90,7 +90,8 @@ gm11.add_pattern(238.1, "a4")
 gm11.add_pattern(242.9, "a5")
 gm11.add_pattern(251.1, "a6")
 
-gm11.forecast(2) # Default is 1, the parameter means how many next moments need to forcast continually.
+gm11.period = 2 # Default is 1, the parameter means how many next moments need to forcast continually.
+gm11.forecast()
 
 # Looks GM11 the results for example as below:
 gm11.print_forecasted_results()
@@ -121,19 +122,18 @@ The average error rate 0.0040857633673527785
 
 #### GM11 Convolutional Forecasting
 ``` python
-# Convolutional forecasting of GM11, forecast_convolution(stride, length)
-gm11.forecast_convolution(1, 4) 
+gm11.convolution = True # To open convolution mode.
+gm11.stride = 1 
+gm11.length = 4
 
-# To record last forecasted result.
-last_forecasted_results = gm11.forecasted_outputs
+gm11.add_pattern(223.3, "a1")
+gm11.add_pattern(227.3, "a2")
+gm11.add_pattern(230.5, "a3")
+gm11.add_pattern(238.1, "a4")
+gm11.add_pattern(242.9, "a5")
+gm11.add_pattern(251.1, "a6")
 
-# To clean all forecasted results. 
-gm11.clean_forecasted()
-
-# In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
-# but if we removed gm11.forecasted_outputs list before,  
-# we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
-gm11.continue_forecasting(last_forecasted_results)
+gm11.forecast()
 ```
 
 #### Alpha for Z
