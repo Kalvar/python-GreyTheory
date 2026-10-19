@@ -1,0 +1,105 @@
+name: Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pypi-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build and verify distributions
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LOKY_MAX_CPU_COUNT: "2"
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Check package and release versions
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          python - <<'PY'
+          import ast
+          import os
+          from pathlib import Path
+          import tomllib
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          module = ast.parse(Path("greytheory/__init__.py").read_text())
+          runtime_version = next(
+              ast.literal_eval(node.value)
+              for node in module.body
+              if isinstance(node, ast.Assign)
+              and any(isinstance(target, ast.Name) and target.id == "__version__" for target in node.targets)
+          )
+          if runtime_version != version:
+              raise SystemExit("pyproject.toml and greytheory.__version__ must match")
+          tag = os.environ.get("RELEASE_TAG", "")
+          if tag and tag not in {version, f"v{version}"}:
+              raise SystemExit(f"Release tag {tag!r} must be {version!r} or 'v{version}'")
+          print(f"Package version: {version}")
+          PY
+
+      - name: Install build and test tools
+        run: python -m pip install --upgrade build twine pytest cvxpy "Pillow>=12,<14" "matplotlib>=3.9,<4"
+
+      - name: Build wheel and source distribution
+        run: python -m build
+
+      - name: Check PyPI metadata and README
+        run: python -m twine check --strict dist/*
+
+      - name: Install the wheel and runtime dependencies
+        run: python -m pip install dist/*.whl
+
+      - name: Check installed dependencies
+        run: python -m pip check
+
+      - name: Verify installed APIs
+        run: python scripts/verify_full_install.py
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Store verified distributions
+        uses: actions/upload-artifact@v5
+        with:
+          name: pypi-distributions
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish verified distributions
+    needs: build
+    if: github.event_name == 'release' && github.event.action == 'published'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Matches the PyPI Trusted Publisher with Environment name left blank.
+    permissions:
+      id-token: write
+    steps:
+      - name: Download verified distributions
+        uses: actions/download-artifact@v6
+        with:
+          name: pypi-distributions
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

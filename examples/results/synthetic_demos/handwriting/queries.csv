@@ -1,0 +1,13 @@
+method,query,prompt_style,nearest_reference,predicted_style,distance,style_match
+PCA / patch features,row5_style1,upright,row4_style1,upright,3.496746573640681,True
+PCA / patch features,row5_style2,flowing,row3_style2,flowing,2.137243359933936,True
+PCA / patch features,row5_style3,angular,row4_style3,angular,1.5058520694933177,True
+PCA / patch features,row6_style1,upright,row2_style1,upright,3.5556134762053135,True
+PCA / patch features,row6_style2,flowing,row1_style2,flowing,3.180886953177398,True
+PCA / patch features,row6_style3,angular,row1_style3,angular,1.1502497552083724,True
+Grey/PCA / window features,row5_style1,upright,row1_style1,upright,6.03102594757886,True
+Grey/PCA / window features,row5_style2,flowing,row4_style2,flowing,1.7423660349195014,True
+Grey/PCA / window features,row5_style3,angular,row4_style3,angular,0.32407346270012577,True
+Grey/PCA / window features,row6_style1,upright,row1_style1,upright,4.823114140806544,True
+Grey/PCA / window features,row6_style2,flowing,row2_style2,flowing,3.7721372481463984,True
+Grey/PCA / window features,row6_style3,angular,row1_style3,angular,1.3556860411990783,True

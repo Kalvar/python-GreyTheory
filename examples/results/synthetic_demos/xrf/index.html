@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>合成 XRF 光譜：Grey/PCA 示範</title><style>
+:root{color-scheme:light dark;--bg:#f5f7fb;--panel:white;--ink:#172033;--line:#dbe2ed;--muted:#556176}
+@media(prefers-color-scheme:dark){:root{--bg:#111827;--panel:#1b2536;--ink:#e6edf7;--line:#35435a;--muted:#afbdd1}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 system-ui,sans-serif}
+main{max-width:1120px;margin:auto;padding:32px 20px}h1{line-height:1.25}h2{font-size:1.25rem;margin:0 0 16px}
+.banner{background:#4931a8;color:white;padding:12px 18px;border-radius:10px;font-weight:650}
+.intro{color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin:20px 0}
+img{max-width:100%;height:auto;background:white;border-radius:8px}a{color:#5388e8}code{overflow-wrap:anywhere}
+.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid var(--line);padding:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+</style><main><div class="banner">SYNTHETIC DEMO · 合成資料 · 非真實量測／鑑識證據</div>
+<h1>合成 XRF 光譜：Grey/PCA 示範</h1><p class="intro">4 張獨立模擬的 6×6 掃描圖，共 144 組光譜；前三張訓練、最後一張測試。</p><section><h2>光譜差異與能量排序</h2><img src="spectra_and_ranking.svg" alt="Synthetic spectra and training energy ranking"></section><section><h2>已知目標與預測</h2><img src="held_out_map.svg" alt="Held-out simulated map predictions"><div class="table"><table><thead><tr><th>方法</th><th>獨立模擬圖 MAE</th></tr></thead><tbody><tr><td>PoissonPCA + Ridge</td><td>0.00861</td></tr><tr><td>GreyPCA(PoissonPCA) + Ridge</td><td>0.01256</td></tr><tr><td>Training-mean baseline</td><td>0.23394</td></tr></tbody></table></div></section><section><h2>可下載的輸入與結果</h2><p><a href="emsa/map00_y00_x00.msa">EMSA/MSA 光譜</a> · <a href="spx/map00_y00_x00.spx">專案讀取用 SPX</a> · <a href="spectra.csv">全部光譜 CSV</a> · <a href="samples.csv">模擬真值</a> · <a href="energy_ranking.csv">能量排名</a> · <a href="predictions.csv">測試圖預測</a> · <a href="summary.json">設定與限制</a></p></section><section><h2>怎麼解讀</h2><p>混合權重只控制模擬譜線強度，不是儀器量測的元素重量百分比。Bruker 公開列有 EMSA 匯入功能，但這批檔案尚未在你的 M4／ESPRIT 版本上實測。SPX 僅驗證本專案讀回，沒有使用任何外部儀器測試資料。</p></section></main></html>

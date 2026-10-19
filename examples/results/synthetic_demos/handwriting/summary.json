@@ -1,0 +1,41 @@
+{
+  "synthetic": true,
+  "source": "AI-generated handwriting contact sheet",
+  "sheet_sha256": "a57a5c342c3f7b20acb5dd16f67cf0a37c9b01cf121664e95897f2fee81ddbd3",
+  "text": "春風明月",
+  "labels": "Prompt-assigned styles, not verified human authors",
+  "reference_samples": 12,
+  "query_samples": 6,
+  "reference_rows": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "query_rows": [
+    4,
+    5
+  ],
+  "unique_normalized_rois": 18,
+  "query_in_fit": false,
+  "gra_class_id_target": false,
+  "limitations": [
+    "One shared generated sheet, not independent documents or writers",
+    "Scores can reflect AI rendering/layout artifacts",
+    "Distances are not author probabilities or forensic accuracy"
+  ],
+  "metrics": [
+    {
+      "method": "PCA / patch features",
+      "style_matches": 6,
+      "queries": 6,
+      "synthetic_style_top1": 1.0
+    },
+    {
+      "method": "Grey/PCA / window features",
+      "style_matches": 6,
+      "queries": 6,
+      "synthetic_style_top1": 1.0
+    }
+  ]
+}

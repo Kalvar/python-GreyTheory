@@ -8,11 +8,14 @@ GreyTheory は、灰色予測、灰色関連分析（GRA）、PCA を使える P
 | やりたいこと | 使う機能 |
 | --- | --- |
 | 次の数値を予測する | [GM(1,1)](#時系列予測) |
+| 二段階のウィンドウ予測 | [Convolution](#convolution二段階のウィンドウ予測) |
 | 特徴と目標値を比較する | [GRA](#灰色関連分析gra) |
 | 次元を減らして成分を選ぶ | [GreyPCA](#pca-と特徴選択) |
 | 大小の好ましい方向を揃えて評点を出す | [品質スコア](#品質スコア) |
 | 軌跡や画像から特徴を作る | [特徴抽出](#軌跡画像ウィンドウ特徴) |
+| PNG／JPG を読んで比較する | [画像ファイル](#画像ファイルを読み込む) |
 | Bruker ファイルを読む | [SPX／BCF](#bruker-ファイルの読み込み) |
+| 合成スペクトルと AI 筆跡を試す | [二つのデモ](#合成-xrf-と-ai-筆跡デモ) |
 
 ## まず動かす
 
@@ -45,12 +48,7 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
-三点以上のデータが必要です。二段階の移動ウィンドウ予測も使えます。
-
-```python
-model = GM11(background_mode="corrected", window_size=4, stride=1).fit(series)
-print(model.predict(2))
-```
+三点以上のデータが必要です。二段階のウィンドウ予測は下の Convolution を参照してください。
 
 係数は `model.coefficients`、計算の診断は `model.diagnostics` で確認できます。
 `set_data` はバッチ処理用にデータを保存します。`reset()` は結果を消し、
@@ -70,6 +68,45 @@ print(model.predict(2))
 MAE と RMSE は使えます。`predict` は保存済みの結果を変更しません。
 
 </details>
+
+## Convolution：二段階のウィンドウ予測
+
+`window_size` で convolution を有効にします。各窓の GM(1,1) で次の値を予測し、その結果を二段目の GM(1,1) に渡します。
+
+**元の系列 → 各窓の予測 → 二段目の GM(1,1) → 将来の値**
+
+```python
+from greytheory import GM11
+
+series = [223.3, 227.3, 230.5, 238.1, 242.9, 251.1]
+model = GM11(window_size=4, stride=1, background_mode="corrected").fit(series)
+print(model.predict(2))
+```
+
+| 設定 | 意味 |
+| --- | --- |
+| `window_size=4` | 一窓に四点。`None` は通常の GM11 |
+| `stride=1` | 一点ずつ移動 |
+| `predict(2)` | 将来の二点を予測 |
+| `correction_mode="legacy"` | 既定の窓の誤差補正。`"none"` で無効化 |
+
+二段階の予測には三つ以上の窓を用意します。上の六点、窓幅四、移動幅一なら三つの窓になります。
+`coefficients` と `metrics` は最後の段の結果です。元の方式と同じく、最後の窓に末尾の余ったデータを含む場合があります。
+
+通常の予測との比較を実行できます。
+
+```bash
+.venv/bin/python examples/convolution_forecast.py
+```
+
+出力例：
+
+```text
+Ordinary GM11, next two values: [256.5532, 263.1223]
+Convolution GM11, next two values: [265.9278, 274.0119]
+```
+
+`GreyWindowFeatures` は PCA／GRA 向けに窓の特徴を作る機能で、二段目の予測は行いません。
 
 ## 複数要因のモデル
 
@@ -386,9 +423,7 @@ paths_5d = [[[0, 0, 0, 0, 0], [1, 2, 1, 3, 2], [2, 2, 3, 4, 5]]]
 sequences_5d = TrajectoryFeatures(n_points=16).fit_transform(paths_5d)
 ```
 
-画像は `greytheory.features` の `ImagePatchFeatures` を使い、
-`ImagePatchFeatures(grid_shape=(4, 8)).fit_transform(images)` とします。
-格子ごとの平均、標準偏差、水平・垂直の変化を取り出します。後続の窓も `boundary_channel=-1` にします。
+画像ファイルからの手順は、下の「画像ファイルを読み込む」を参照してください。
 
 回帰を加える場合は sklearn Pipeline を使えます。
 `train_paths` と `test_paths` は `Trajectory` の list、`train_targets` は各訓練軌跡に対応する連続値です。
@@ -410,6 +445,84 @@ predictions = model.predict(test_paths)
 
 実行例は [grey_feature_pipeline.py](examples/grey_feature_pipeline.py) です。
 筆者照合や補彩の検出には、この特徴に加えて専用モデルと検証データが必要です。
+
+### 画像ファイルを読み込む
+
+最初に画像用の依存パッケージを入れます。
+
+```bash
+.venv/bin/python -m pip install -e ".[images]"
+```
+
+参照画像を三枚以上と、比較したい画像を一枚用意します。配置例です。
+
+```text
+test_data/images/
+├── reference/
+│   ├── sample_a.png
+│   ├── sample_b.jpg
+│   └── sample_c.png
+└── query.png
+```
+
+`load_images` は一つのパスまたはパスの list を受け取り、0–1 の RGB 配列を返します。
+PNG／JPG を読み、問い合わせ画像に近い順に並べる例です。
+
+```python
+from pathlib import Path
+import numpy as np
+from sklearn.metrics import pairwise_distances
+from sklearn.pipeline import Pipeline
+from greytheory.io import load_images
+from greytheory.features import ImagePatchFeatures, GreyWindowFeatures
+from greytheory.analysis import GreyPCA
+
+reference_paths = sorted(
+    path for path in Path("test_data/images/reference").iterdir()
+    if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg"}
+)
+reference_images = load_images(reference_paths, size=(128, 128))
+query_image = load_images("test_data/images/query.png", size=(128, 128))
+
+pipeline = Pipeline([
+    ("patches", ImagePatchFeatures(grid_shape=(4, 8))),
+    ("windows", GreyWindowFeatures(8, stride=8, boundary_channel=-1)),
+    ("pca", GreyPCA(2, standardize=True)),
+])
+reference_components = pipeline.fit_transform(reference_images)
+query_components = pipeline.transform(query_image)
+distances = pairwise_distances(query_components, reference_components)[0]
+for index in np.argsort(distances, kind="stable"):
+    print(reference_paths[index].name, float(distances[index]))
+```
+
+PCA 特徴空間の距離が小さいほど近い画像です。参照だけで学習し、問い合わせ画像には変換だけを使います。
+この距離だけで筆者、真贋、補彩を判定することはできません。
+
+`size=(128, 128)` は幅・高さで、縦横比を保ち白い余白を追加します。省略時は全画像を同じサイズに揃えます。
+EXIF の方向と透明部分の白背景処理も行います。グレー画像は `mode="L"` です。
+切り出す領域と位置は先に揃えてください。高ビット深度の測定値は、この表示画像用の変換を通さず数値配列で扱います。
+
+直接実行もできます。最初のコマンドはデモ PNG を作り、次のコマンドは自分の画像を読みます。
+
+```bash
+.venv/bin/python examples/image_files.py
+
+.venv/bin/python examples/image_files.py \
+  --references test_data/images/reference \
+  --query test_data/images/query.png \
+  --size 128 128
+```
+
+結果は既定で `artifacts/image_files/` に出力します。
+
+| ファイル | 内容 |
+| --- | --- |
+| `features.csv` | 画像ごとの Grey ウィンドウ特徴 |
+| `components.csv` | PCA 座標 |
+| `ranking.csv` | 参照画像との距離と順位 |
+
+実行コード：[image_files.py](examples/image_files.py)。
 
 <details>
 <summary>入力条件</summary>
@@ -485,6 +598,68 @@ GM0N、GM1N、GM11 を混ぜられます。既存のモデル list には `run_m
 
 </details>
 
+## 合成 XRF と AI 筆跡デモ
+
+[合成入力と分析結果](examples/results/synthetic_demos/)を同梱しています。ダウンロード後、
+`examples/results/synthetic_demos/index.html` をブラウザーで開けば、Python なしで報告を見られます。
+GitHub 上では HTML を直接表示できません。画像と CSV は下のリンクから確認できます。
+
+再実行する場合は、プロジェクトのディレクトリで次を実行します（macOS／Linux）。
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[demos]"
+.venv/bin/python examples/synthetic_demos.py
+```
+
+Windows では `.venv/bin/python` を `.venv\Scripts\python.exe` に置き換えてください。
+
+| デモ | 入力・分析 | 出力 |
+| --- | --- | --- |
+| 合成 XRF | 6×6 の四枚のマップ、1024 チャネルの 144 スペクトル。Ca／Fe／Cu／Zn の既知の混合重みと Poisson 雑音 | スペクトル、エネルギー GRA 順位、未使用の模擬マップでの PCA／GreyPCA 予測比較 |
+| AI 筆跡の形状 | 春風明月の三つの指定スタイル、18 セル。参照 12、問い合わせ 6 | PCA／Grey ウィンドウ＋PCA の距離、座標、特徴 CSV |
+
+再実行の結果は `artifacts/synthetic_demos/` に保存されます。その中の `index.html` を開いてください。
+片方だけなら、スクリプトに `--demo xrf` または `--demo handwriting` を付けます。
+
+| 確認する内容 | 同梱ファイル |
+| --- | --- |
+| 光譜のカウント、エネルギー軸、合成の正解値 | [spectra.csv](examples/results/synthetic_demos/xrf/spectra.csv)、[samples.csv](examples/results/synthetic_demos/xrf/samples.csv)。`emsa/` の MSA は一つにつき一スペクトル |
+| エネルギー順位と予測の比較 | [energy_ranking.csv](examples/results/synthetic_demos/xrf/energy_ranking.csv)、[predictions.csv](examples/results/synthetic_demos/xrf/predictions.csv) |
+| 筆跡の照会結果と全順位 | [queries.csv](examples/results/synthetic_demos/handwriting/queries.csv)、[ranking.csv](examples/results/synthetic_demos/handwriting/ranking.csv) |
+
+同梱結果の更新には `.venv/bin/python examples/synthetic_demos.py --output examples/results/synthetic_demos` を使います。
+
+関数からも使えます。
+
+```python
+from greytheory.demos import run_xrf_demo, run_handwriting_demo
+
+xrf = run_xrf_demo("artifacts/synthetic_demos/xrf", seed=7)
+handwriting = run_handwriting_demo("artifacts/synthetic_demos/handwriting")
+print(xrf["report"])
+print(handwriting["report"])
+```
+
+XRF は `emsa/*.msa`、`spx/*.spx`、`spectra.csv`、`dataset.npz` を出力します。
+[Bruker は EMSA 交換を案内しています](https://www.bruker.com/it/products-and-solutions/elemental-analyzers/eds-wds-ebsd-SEM-Micro-XRF/software-esprit-family/esprit-reporting-and-data-management.html)が、実際の M4／ESPRIT への読み込みは別途確認が必要です。
+SPX は本プロジェクトの最小読取り例です。混合重みは校正済みの元素 wt% ではありません。
+
+筆跡は imagegen の生成画像で、[プロンプト](greytheory/demos/assets/handwriting_ai_sheet.json)も同梱しています。
+ラベルは指定した形状スタイルで、実際の筆者ではありません。同じ生成ページ内の比較なので、実在の筆者の照合精度は示しません。
+Grey は窓特徴の抽出です。スタイル ID を連続値の GRA 目標にはしません。
+
+<details>
+<summary>合成光譜と AI 筆跡の結果を見る</summary>
+
+![合成光譜とエネルギー順位](examples/results/synthetic_demos/xrf/spectra_and_ranking.png)
+
+![AI が生成した三種類の架空の筆跡](greytheory/demos/assets/handwriting_ai_sheet.png)
+
+![PCA と Grey 窓特徴 PCA による筆跡スタイル分布](examples/results/synthetic_demos/handwriting/style_embeddings.png)
+
+</details>
+
 ## 開発とテスト
 
 ```bash
@@ -496,6 +671,9 @@ python -m build
 テストデータは生成または同梱済みで、別途ダウンロードは不要です。
 `scripts/verify_full_install.py` でインストール後の API を確認できます。
 サンプルの合成データは手順の説明用で、工程・化学・鑑識の精度検証ではありません。
+
+GitHub 用のソース ZIP は `python3 scripts/package_github.py` で作成できます。
+`artifacts/github_upload/` に保存され、ソースと合成結果を含みます。ローカル環境、キャッシュ、外部の装置データは含みません。
 
 測定記録は [benchmarks/results](benchmarks/results/) にあります。
 [コア比較](benchmarks/compare_core.py)と[降次元比較](benchmarks/compare_decomposition.py)を再実行できます。
@@ -517,3 +695,5 @@ python -m build
 - Camp (2019), [pyMCR / MCR-AR](https://doi.org/10.6028/jres.124.018).
 - [scikit-learn](https://scikit-learn.org/stable/modules/decomposition.html)、[Spectral Python](https://www.spectralpython.net/algorithms.html)、[pybaselines](https://pybaselines.readthedocs.io/en/latest/algorithms/whittaker.html)。
 - NIST/SEMATECH. [Multiple responses: the desirability approach](https://www.itl.nist.gov/div898/handbook/pri/section5/pri5322.htm)。方向と目標設定の参考。GRA の加重平均は幾何平均 desirability と異なります。
+
+- Pillow. [Image.open](https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open) と [ImageOps](https://pillow.readthedocs.io/en/stable/reference/ImageOps.html)。読込み、EXIF、余白処理。`images` extra でインストールします。

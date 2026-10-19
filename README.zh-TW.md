@@ -8,11 +8,14 @@ GreyTheory 是一套 Python 資料分析工具，提供灰色預測、灰關聯�
 | 想做什麼 | 從這裡開始 |
 | --- | --- |
 | 預測接下來幾筆數值 | [GM(1,1)](#時間序列預測) |
+| 滑動窗口做兩層預測 | [Convolution](#convolution兩層窗口預測) |
 | 看哪些因素與目標較接近 | [GRA](#灰關聯分析gra) |
 | 先降維，再篩選特徵 | [GreyPCA](#pca-與特徵篩選) |
 | 把望大、望小的品質指標放在一起評分 | [品質評分](#品質評分) |
 | 處理多維軌跡或圖片 | [特徵擷取](#軌跡圖片與窗口特徵) |
+| 讀入 PNG／JPG 做比較 | [圖片檔範例](#從圖片檔開始分析) |
 | 讀取 Bruker 檔案 | [SPX／BCF](#bruker-檔案讀取) |
+| 試跑合成光譜與 AI 筆跡 | [兩組 demo](#合成光譜與-ai-筆跡-demo) |
 
 ## 先跑起來
 
@@ -45,12 +48,7 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
-至少需要三筆資料。想用兩層滑動窗口，可以改成：
-
-```python
-model = GM11(background_mode="corrected", window_size=4, stride=1).fit(series)
-print(model.predict(2))
-```
+至少需要三筆資料。滑動窗口的兩層預測見下方 Convolution 範例。
 
 係數看 `model.coefficients`，求解狀況看 `model.diagnostics`。
 `set_data` 可以先存資料、之後再批次計算；`reset()` 清除結果，`reset(clear_data=True)` 連資料一起清除。
@@ -68,6 +66,45 @@ print(model.predict(2))
 `predict` 不會改動已儲存的擬合結果。
 
 </details>
+
+## Convolution：兩層窗口預測
+
+Convolution 功能由 `window_size` 開啟。先用每個窗口的 GM(1,1) 預測下一筆，再把這些結果交給第二層 GM(1,1)：
+
+**原始序列 → 窗口預測 → 第二層 GM(1,1) → 未來數值**
+
+```python
+from greytheory import GM11
+
+series = [223.3, 227.3, 230.5, 238.1, 242.9, 251.1]
+model = GM11(window_size=4, stride=1, background_mode="corrected").fit(series)
+print(model.predict(2))
+```
+
+| 參數 | 用途 |
+| --- | --- |
+| `window_size=4` | 每個窗口使用四筆資料；`None` 為一般 GM11 |
+| `stride=1` | 每次往前移動一筆 |
+| `predict(2)` | 預測未來兩筆 |
+| `correction_mode="legacy"` | 預設沿用窗口誤差修正；`"none"` 可關閉修正 |
+
+要跑完整兩層預測，請讓資料能產生至少三個窗口。上例六筆資料、窗口四筆、步長一筆，剛好產生三個窗口。
+`coefficients` 和 `metrics` 對應最後一層的擬合結果。最後一個窗口可能多包含尾端資料，沿用原本的處理方式。
+
+執行比較範例，會列出一般 GM11 和 Convolution 的預測值：
+
+```bash
+.venv/bin/python examples/convolution_forecast.py
+```
+
+比較結果：
+
+```text
+Ordinary GM11, next two values: [256.5532, 263.1223]
+Convolution GM11, next two values: [265.9278, 274.0119]
+```
+
+`GreyWindowFeatures` 則是擷取窗口特徵給 PCA／GRA 使用，不做這個第二層預測。
 
 ## 多因素模型
 
@@ -384,8 +421,7 @@ paths_5d = [[[0, 0, 0, 0, 0], [1, 2, 1, 3, 2], [2, 2, 3, 4, 5]]]
 sequences_5d = TrajectoryFeatures(n_points=16).fit_transform(paths_5d)
 ```
 
-圖片用 `ImagePatchFeatures(grid_shape=(4, 8)).fit_transform(images)`，從 `greytheory.features` 匯入。
-它會把圖片切成格子，取平均、標準差與水平／垂直亮度變化。接窗口時也設 `boundary_channel=-1`。
+圖片可以直接從檔案讀入，完整範例見下方「從圖片檔開始分析」。
 
 要接迴歸模型，可以用 sklearn Pipeline。這裡的 `train_paths`、`test_paths` 是 `Trajectory` 清單，
 `train_targets` 是每份訓練軌跡對應的連續數值：
@@ -407,6 +443,83 @@ predictions = model.predict(test_paths)
 
 完整範例：[grey_feature_pipeline.py](examples/grey_feature_pipeline.py)。
 這些特徵可以作為模型輸入；筆跡作者比對、補畫辨識仍需專用模型與資料驗證。
+
+### 從圖片檔開始分析
+
+先安裝讀圖套件，這一步只需做一次：
+
+```bash
+.venv/bin/python -m pip install -e ".[images]"
+```
+
+準備至少三張參考圖片，以及一張要比較的圖片。放在哪裡都可以，下例使用：
+
+```text
+test_data/images/
+├── reference/
+│   ├── sample_a.png
+│   ├── sample_b.jpg
+│   └── sample_c.png
+└── query.png
+```
+
+`load_images` 接受單一檔案路徑或路徑清單，讀成 0–1 的 RGB 陣列。下面可直接讀入 PNG／JPG，並列出離查詢圖片最近的參考圖：
+
+```python
+from pathlib import Path
+import numpy as np
+from sklearn.metrics import pairwise_distances
+from sklearn.pipeline import Pipeline
+from greytheory.io import load_images
+from greytheory.features import ImagePatchFeatures, GreyWindowFeatures
+from greytheory.analysis import GreyPCA
+
+reference_paths = sorted(
+    path for path in Path("test_data/images/reference").iterdir()
+    if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg"}
+)
+reference_images = load_images(reference_paths, size=(128, 128))
+query_image = load_images("test_data/images/query.png", size=(128, 128))
+
+pipeline = Pipeline([
+    ("patches", ImagePatchFeatures(grid_shape=(4, 8))),
+    ("windows", GreyWindowFeatures(8, stride=8, boundary_channel=-1)),
+    ("pca", GreyPCA(2, standardize=True)),
+])
+reference_components = pipeline.fit_transform(reference_images)
+query_components = pipeline.transform(query_image)
+distances = pairwise_distances(query_components, reference_components)[0]
+for index in np.argsort(distances, kind="stable"):
+    print(reference_paths[index].name, float(distances[index]))
+```
+
+分數是 PCA 特徵空間中的距離，越小越接近。模型只用參考圖片訓練，查詢圖片只做轉換。
+它比較的是這組特徵，不能直接當成作者、真偽或補畫判定。
+
+`size=(128, 128)` 依「寬、高」指定尺寸，保留比例並補白邊；省略時所有圖片須有相同尺寸。
+讀取時會套用 EXIF 方向、將透明背景補白。灰階可設 `mode="L"`。
+裁切區域與位置仍需先對齊；高位元原始強度資料請保留為數值陣列，不經此讀圖轉換。
+
+也可以直接跑範例。第一個指令會產生示範 PNG，第二個讀入自己的圖片：
+
+```bash
+.venv/bin/python examples/image_files.py
+
+.venv/bin/python examples/image_files.py \
+  --references test_data/images/reference \
+  --query test_data/images/query.png \
+  --size 128 128
+```
+
+結果預設寫入 `artifacts/image_files/`：
+
+| 檔案 | 內容 |
+| --- | --- |
+| `features.csv` | 各張圖片的 Grey 窗口特徵 |
+| `components.csv` | PCA 轉換後的座標 |
+| `ranking.csv` | 參考圖片的距離與排名 |
+
+完整程式：[image_files.py](examples/image_files.py)。
 
 <details>
 <summary>軌跡、窗口與圖片的資料要求</summary>
@@ -484,6 +597,68 @@ GM0N、GM1N、GM11 可以混用；已有模型清單時可呼叫 `run_models(mod
 
 </details>
 
+## 合成光譜與 AI 筆跡 demo
+
+已附上[合成輸入與分析結果](examples/results/synthetic_demos/)。下載專案後，直接用瀏覽器開啟
+`examples/results/synthetic_demos/index.html` 就能看兩組報告，不用先安裝 Python。
+GitHub 不會直接顯示 HTML 報告；線上可先看下方圖片與 CSV。
+
+想自己重跑，在專案目錄執行（macOS／Linux）：
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[demos]"
+.venv/bin/python examples/synthetic_demos.py
+```
+
+Windows 請將 `.venv/bin/python` 換成 `.venv\Scripts\python.exe`。
+
+| Demo | 輸入與分析 | 結果 |
+| --- | --- | --- |
+| 合成 XRF | 4 張 6×6 掃描圖、144 組 1024 通道光譜；已知 Ca／Fe／Cu／Zn 譜線混合權重，含背景與 Poisson 雜訊 | 光譜圖、能量 GRA 排名、獨立模擬圖的 PCA／GreyPCA 預測比較 |
+| AI 筆跡風格 | 3 種人為設定風格的「春風明月」，共 18 格；12 格參考、6 格查詢 | PCA／Grey 窗口＋PCA 的距離排名、座標與特徵 CSV |
+
+重跑結果會存到 `artifacts/synthetic_demos/`，開啟其中的 `index.html` 即可。
+也可以只跑一組：`examples/synthetic_demos.py --demo xrf` 或 `--demo handwriting`。
+
+| 想看什麼 | 已附的檔案 |
+| --- | --- |
+| 光譜數值、能量軸與模擬真值 | [spectra.csv](examples/results/synthetic_demos/xrf/spectra.csv)、[samples.csv](examples/results/synthetic_demos/xrf/samples.csv)；`emsa/` 每個 MSA 檔是一組光譜 |
+| 關鍵能量排序與預測比較 | [energy_ranking.csv](examples/results/synthetic_demos/xrf/energy_ranking.csv)、[predictions.csv](examples/results/synthetic_demos/xrf/predictions.csv) |
+| 筆跡查詢結果與完整排名 | [queries.csv](examples/results/synthetic_demos/handwriting/queries.csv)、[ranking.csv](examples/results/synthetic_demos/handwriting/ranking.csv) |
+
+要重新產生專案內附的結果，可執行 `.venv/bin/python examples/synthetic_demos.py --output examples/results/synthetic_demos`。
+
+要從自己的程式呼叫：
+
+```python
+from greytheory.demos import run_xrf_demo, run_handwriting_demo
+
+xrf = run_xrf_demo("artifacts/synthetic_demos/xrf", seed=7)
+handwriting = run_handwriting_demo("artifacts/synthetic_demos/handwriting")
+print(xrf["report"])
+print(handwriting["report"])
+```
+
+XRF 會輸出 `emsa/*.msa`、`spx/*.spx`、`spectra.csv` 和 `dataset.npz`。
+EMSA 是 [Bruker 公開支援的交換格式](https://www.bruker.com/it/products-and-solutions/elemental-analyzers/eds-wds-ebsd-SEM-Micro-XRF/software-esprit-family/esprit-reporting-and-data-management.html)，仍需在實際的 M4／ESPRIT 版本測試匯入。
+SPX 是本專案讀取用的最小範例，不宣稱等同原廠匯出檔。模擬混合權重也不是校正後的元素 wt%。
+
+筆跡圖由 imagegen 生成，原圖與[提示紀錄](greytheory/demos/assets/handwriting_ai_sheet.json)隨專案附上。
+風格標籤來自生成時的欄位設定，不是真實作者。所有樣本都來自同一張合成頁，命中結果只展示流程，不代表跨文件或真人作者辨識準確率。
+這裡的 Grey 是窗口特徵，不把風格編號當連續目標送入 GRA。
+
+<details>
+<summary>查看光譜分析與 AI 筆跡範例</summary>
+
+![合成光譜與關鍵能量排名](examples/results/synthetic_demos/xrf/spectra_and_ranking.png)
+
+![AI 生成的三種虛構筆跡風格](greytheory/demos/assets/handwriting_ai_sheet.png)
+
+![PCA 與 Grey 窗口加 PCA 的筆跡風格分布](examples/results/synthetic_demos/handwriting/style_embeddings.png)
+
+</details>
+
 ## 開發與測試
 
 ```bash
@@ -494,6 +669,9 @@ python -m build
 
 測試資料由程式產生或已附在專案內，不用另外下載。`scripts/verify_full_install.py` 可檢查安裝後的 API。
 範例使用合成資料，展示流程，不代表實際製程、化學或鑑識準確率。
+
+需要整理 GitHub 原始碼包時，執行 `python3 scripts/package_github.py`。
+ZIP 存在 `artifacts/github_upload/`，包含原始碼與上述合成結果，不含本機環境、快取或外部儀器資料。
 
 效能紀錄見 [benchmarks/results](benchmarks/results/)，重跑可用[核心測試](benchmarks/compare_core.py)或[降維比較](benchmarks/compare_decomposition.py)。
 紀錄來自 macOS arm64，執行時間會隨環境改變。
@@ -530,3 +708,5 @@ python -m build
 21. xraylib. [X-ray interaction data and documentation](https://github.com/tschoonj/xraylib/wiki). Used for characteristic line energies and relative rates.
 22. RosettaSciIO community. [Bruker detector-calibration discussion, issue #516](https://github.com/hyperspy/rosettasciio/issues/516). File-format and per-detector energy calibration notes.
 23. NIST/SEMATECH. [Multiple responses: the desirability approach](https://www.itl.nist.gov/div898/handbook/pri/section5/pri5322.htm). Engineering preference directions and targets; GreyTheory uses separately documented arithmetic GRA grades, not the geometric-mean desirability function.
+
+24. Pillow. [Image.open](https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open) 與 [ImageOps](https://pillow.readthedocs.io/en/stable/reference/ImageOps.html)。用於讀圖、EXIF 方向與保留比例的補邊；透過 `images` 選用套件安裝。

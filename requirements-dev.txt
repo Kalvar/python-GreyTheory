@@ -1,4 +1,6 @@
 pytest>=8
+Pillow>=12,<14
+matplotlib>=3.9,<4
 ruff>=0.9
 build>=1.2
 wheel>=0.45

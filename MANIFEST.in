@@ -4,6 +4,7 @@ include requirements-dev.txt
 recursive-include scripts *.py
 recursive-include benchmarks *.py *.json
 recursive-include examples *.py
+recursive-include greytheory/demos/assets *.png *.json
 recursive-include tests *.py *.json
 exclude CHANGELOG.md MIGRATION.md IMPLEMENTATION_REPORT.md
 exclude LICENSE_AUDIT.md VULNERABILITY_AUDIT.md
@@ -15,4 +16,5 @@ prune audit
 prune test_data
 prune tests/fixtures/external
 prune artifacts
+prune .local
 global-exclude *.pyc .DS_Store

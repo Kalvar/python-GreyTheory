@@ -17,11 +17,18 @@ dependencies = [
   "pybaselines>=1.2,<2", "xraylib>=4.2,<5", "defusedxml>=0.7.1,<1",
 ]
 
+[project.optional-dependencies]
+images = ["Pillow>=12,<14"]
+demos = ["Pillow>=12,<14", "matplotlib>=3.9,<4"]
+
 [project.urls]
 Repository = "https://github.com/Kalvar/python-GreyTheory"
 
 [tool.setuptools.packages.find]
 include = ["greytheory*"]
+
+[tool.setuptools.package-data]
+"greytheory.demos" = ["assets/*.png", "assets/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

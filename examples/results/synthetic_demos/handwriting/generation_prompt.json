@@ -1,0 +1,27 @@
+{
+  "synthetic": true,
+  "asset": "handwriting_ai_sheet.png",
+  "generator": "built-in image_gen tool",
+  "generated_date": "2026-10-19",
+  "text": "春風明月",
+  "columns": 3,
+  "rows": 6,
+  "styles": [
+    "upright",
+    "flowing",
+    "angular"
+  ],
+  "reference_rows": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "query_rows": [
+    4,
+    5
+  ],
+  "labels": "Prompt-assigned visual styles, not verified human authors.",
+  "evaluation": "Same generated sheet, different cells. No real-world forensic accuracy claim.",
+  "prompt": "Use case: scientific-educational.\nAsset type: a synthetic handwriting dataset contact sheet for a Python image feature demonstration.\nCreate one high-resolution landscape scan, exactly 3 equal-width columns and 6 equal-height rows (18 cells), filling the whole canvas. Each cell contains the same four clearly legible handwritten Traditional Chinese characters, verbatim: 春風明月\nThe page is flat, clean pure white, with extremely thin light-gray straight separators at exactly one-third and two-thirds of the canvas width and exactly every one-sixth of the canvas height. No outside margins, title, labels, numbers, signatures, logos, paper textures, shadows, ruler or perspective.\nLeave generous blank interior margins around every phrase so every phrase stays inside the central 75% of its cell.\nEach column represents a fictional handwriting STYLE, not a real person:\nColumn 1: neat upright regular handwriting, separate square forms, consistent medium black pen strokes.\nColumn 2: strongly right-slanted flowing semi-cursive handwriting, connected relaxed strokes, elongated forms, same medium black pen weight.\nColumn 3: angular slightly left-slanted compact handwriting, sharp corners, tall narrow forms, same medium black pen weight.\nWrite the phrase anew in each of the six rows: preserve the column's style while making small natural changes in stroke shape and spacing. Do NOT duplicate or paste one raster phrase six times. All columns must use identical ink blackness and identical white backgrounds; the differentiating factor should be letterforms, not background or color. Use identical phrase placement and similar overall size in every cell.\nThe image is fictional sample data, not a document, certificate, real person's writing, or forensic evidence. No labels inside the cells."
+}

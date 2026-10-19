@@ -8,11 +8,14 @@ Use it to forecast sequences, reduce feature tables, or compare spectra and meas
 | Task | Start here |
 | --- | --- |
 | Forecast the next few values | [GM(1,1)](#time-series-forecasting) |
+| Forecast with two levels of windows | [Convolution](#convolution-forecasting) |
 | Compare features with a target | [GRA](#grey-relational-analysis-gra) |
 | Reduce dimensions, then select components | [GreyPCA](#pca-and-feature-selection) |
 | Score mixed quality preferences | [Quality scoring](#quality-scoring) |
 | Work with paths or images | [Feature extraction](#trajectory-image-and-window-features) |
+| Read PNG/JPG files for comparison | [Image-file example](#start-with-image-files) |
 | Read Bruker files | [SPX/BCF](#bruker-file-readers) |
+| Run synthetic spectra and AI handwriting | [Both demos](#synthetic-xrf-and-ai-handwriting-demos) |
 
 ## Get started
 
@@ -46,12 +49,7 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
-Use at least three observations. For a two-level sliding-window forecast:
-
-```python
-model = GM11(background_mode="corrected", window_size=4, stride=1).fit(series)
-print(model.predict(2))
-```
+Use at least three observations. See Convolution below for two-level window forecasting.
 
 Read coefficients from `model.coefficients` and solver diagnostics from `model.diagnostics`.
 `set_data` stores observations for a later batch run. `reset()` clears results;
@@ -71,6 +69,47 @@ Diagnostics include rank, condition number, and residuals.
 MAE and RMSE remain available. `predict` leaves stored fit results unchanged.
 
 </details>
+
+## Convolution forecasting
+
+Set `window_size` to enable convolution. Each window uses GM(1,1) to predict its next value;
+a second GM(1,1) then fits those predictions:
+
+**Sequence → window predictions → second-level GM(1,1) → future values**
+
+```python
+from greytheory import GM11
+
+series = [223.3, 227.3, 230.5, 238.1, 242.9, 251.1]
+model = GM11(window_size=4, stride=1, background_mode="corrected").fit(series)
+print(model.predict(2))
+```
+
+| Setting | Meaning |
+| --- | --- |
+| `window_size=4` | Four observations per window; `None` uses ordinary GM11 |
+| `stride=1` | Advance one observation at a time |
+| `predict(2)` | Forecast two future values |
+| `correction_mode="legacy"` | Keep the default window-error correction; `"none"` disables it |
+
+For the full two-level method, provide enough data for at least three windows.
+The six observations above, with width four and stride one, produce three windows.
+`coefficients` and `metrics` describe the final fitted level. The last window can include extra tail observations, matching the original method.
+
+Run the comparison to see both ordinary and convolution forecasts:
+
+```bash
+.venv/bin/python examples/convolution_forecast.py
+```
+
+Example output:
+
+```text
+Ordinary GM11, next two values: [256.5532, 263.1223]
+Convolution GM11, next two values: [265.9278, 274.0119]
+```
+
+`GreyWindowFeatures` instead extracts local descriptors for PCA/GRA; it does not run the second forecast level.
 
 ## Multiple-factor models
 
@@ -406,9 +445,7 @@ paths_5d = [[[0, 0, 0, 0, 0], [1, 2, 1, 3, 2], [2, 2, 3, 4, 5]]]
 sequences_5d = TrajectoryFeatures(n_points=16).fit_transform(paths_5d)
 ```
 
-For images, import `ImagePatchFeatures` from `greytheory.features` and use
-`ImagePatchFeatures(grid_shape=(4, 8)).fit_transform(images)`. It extracts per-cell means,
-standard deviations, and horizontal/vertical intensity changes. Also use `boundary_channel=-1` downstream.
+To read image files directly, see “Start with image files” below.
 
 To add regression, use sklearn's Pipeline. Here, `train_paths` and `test_paths` are lists of
 `Trajectory` objects; `train_targets` contains one continuous value per training path:
@@ -431,6 +468,88 @@ predictions = model.predict(test_paths)
 See [grey_feature_pipeline.py](examples/grey_feature_pipeline.py) for a runnable example.
 These features can feed a model; handwriting authorship and overpainting detection still need
 dedicated models and validation data.
+
+### Start with image files
+
+Install image support once:
+
+```bash
+.venv/bin/python -m pip install -e ".[images]"
+```
+
+Supply at least three reference images and a separate query image. Choose any directory;
+this example uses:
+
+```text
+test_data/images/
+├── reference/
+│   ├── sample_a.png
+│   ├── sample_b.jpg
+│   └── sample_c.png
+└── query.png
+```
+
+`load_images` accepts one path or a list of paths and returns an RGB batch in [0, 1].
+Read PNG/JPG files and rank references by their distance from the query:
+
+```python
+from pathlib import Path
+import numpy as np
+from sklearn.metrics import pairwise_distances
+from sklearn.pipeline import Pipeline
+from greytheory.io import load_images
+from greytheory.features import ImagePatchFeatures, GreyWindowFeatures
+from greytheory.analysis import GreyPCA
+
+reference_paths = sorted(
+    path for path in Path("test_data/images/reference").iterdir()
+    if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg"}
+)
+reference_images = load_images(reference_paths, size=(128, 128))
+query_image = load_images("test_data/images/query.png", size=(128, 128))
+
+pipeline = Pipeline([
+    ("patches", ImagePatchFeatures(grid_shape=(4, 8))),
+    ("windows", GreyWindowFeatures(8, stride=8, boundary_channel=-1)),
+    ("pca", GreyPCA(2, standardize=True)),
+])
+reference_components = pipeline.fit_transform(reference_images)
+query_components = pipeline.transform(query_image)
+distances = pairwise_distances(query_components, reference_components)[0]
+for index in np.argsort(distances, kind="stable"):
+    print(reference_paths[index].name, float(distances[index]))
+```
+
+Distances are measured in PCA feature space; smaller means closer.
+Fit on reference images only, then transform the query. These distances do not establish
+authorship, authenticity, or overpainting.
+
+`size=(128, 128)` is `(width, height)` and preserves aspect ratio with white padding.
+Without it, all image dimensions must match. Loading applies EXIF orientation and composites
+transparency over white; use `mode="L"` for grayscale.
+Align crops and positions beforehand. Keep high-bit-depth scientific intensities as numeric arrays
+rather than converting them through this display-image loader.
+
+Or run the script directly. The first command generates demo PNGs; the second uses your files:
+
+```bash
+.venv/bin/python examples/image_files.py
+
+.venv/bin/python examples/image_files.py \
+  --references test_data/images/reference \
+  --query test_data/images/query.png \
+  --size 128 128
+```
+
+Results are written to `artifacts/image_files/` by default:
+
+| File | Contents |
+| --- | --- |
+| `features.csv` | Grey window descriptors for each image |
+| `components.csv` | PCA coordinates |
+| `ranking.csv` | Reference distances and ranking |
+
+Full example: [image_files.py](examples/image_files.py).
 
 <details>
 <summary>Path, window, and image input requirements</summary>
@@ -515,6 +634,70 @@ Use `inplace=False` to return fitted copies without changing the queue.
 
 </details>
 
+## Synthetic XRF and AI handwriting demos
+
+The [synthetic inputs and results](examples/results/synthetic_demos/) are included.
+Download the project and open `examples/results/synthetic_demos/index.html` in a browser; Python is not needed to view them.
+GitHub does not render the HTML reports directly; use the images and CSV links below for an online preview.
+
+To rerun both demos, run these commands in the project directory (macOS/Linux):
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[demos]"
+.venv/bin/python examples/synthetic_demos.py
+```
+
+On Windows, replace `.venv/bin/python` with `.venv\Scripts\python.exe`.
+
+| Demo | Input and analysis | Output |
+| --- | --- | --- |
+| Synthetic XRF | Four 6×6 maps, 144 spectra with 1024 channels; known Ca/Fe/Cu/Zn line-template weights, continuum, and Poisson noise | Spectra, energy-channel GRA ranking, and PCA/GreyPCA prediction on a held-out simulated map |
+| AI handwriting styles | 18 cells of 春風明月 in three prompt-defined styles; 12 references and 6 queries | Patch/PCA versus Grey-window/PCA distances, coordinates, and numeric feature exports |
+
+New results go to `artifacts/synthetic_demos/`; open its `index.html`.
+For one demo, append `--demo xrf` or `--demo handwriting` to the script command.
+
+| What to inspect | Included files |
+| --- | --- |
+| Spectral counts, energy axis, and synthetic truth | [spectra.csv](examples/results/synthetic_demos/xrf/spectra.csv), [samples.csv](examples/results/synthetic_demos/xrf/samples.csv); each MSA in `emsa/` contains one spectrum |
+| Energy ranking and prediction comparison | [energy_ranking.csv](examples/results/synthetic_demos/xrf/energy_ranking.csv), [predictions.csv](examples/results/synthetic_demos/xrf/predictions.csv) |
+| Handwriting queries and complete ranking | [queries.csv](examples/results/synthetic_demos/handwriting/queries.csv), [ranking.csv](examples/results/synthetic_demos/handwriting/ranking.csv) |
+
+To refresh the bundled results, run `.venv/bin/python examples/synthetic_demos.py --output examples/results/synthetic_demos`.
+
+Or call the modules directly:
+
+```python
+from greytheory.demos import run_xrf_demo, run_handwriting_demo
+
+xrf = run_xrf_demo("artifacts/synthetic_demos/xrf", seed=7)
+handwriting = run_handwriting_demo("artifacts/synthetic_demos/handwriting")
+print(xrf["report"])
+print(handwriting["report"])
+```
+
+XRF exports `emsa/*.msa`, `spx/*.spx`, `spectra.csv`, and `dataset.npz`.
+[Bruker documents EMSA exchange](https://www.bruker.com/it/products-and-solutions/elemental-analyzers/eds-wds-ebsd-SEM-Micro-XRF/software-esprit-family/esprit-reporting-and-data-management.html), but importing these files still needs testing with your actual M4/ESPRIT version.
+The SPX files are minimal fixtures for this project's reader, not guaranteed vendor exports.
+Synthetic mixing weights are not calibrated elemental wt%.
+
+The handwriting sheet was created with imagegen; the image and [prompt record](greytheory/demos/assets/handwriting_ai_sheet.json) are bundled.
+Labels describe prompt-assigned styles, not human writers. All samples share one generated sheet;
+style matches demonstrate the workflow, not cross-document or human-authorship accuracy.
+Grey means window descriptors here; categorical style IDs are never used as continuous GRA targets.
+
+<details>
+<summary>Preview the spectra and AI handwriting results</summary>
+
+![Synthetic spectra and energy ranking](examples/results/synthetic_demos/xrf/spectra_and_ranking.png)
+
+![Three fictional AI-generated handwriting styles](greytheory/demos/assets/handwriting_ai_sheet.png)
+
+![Handwriting styles with PCA and Grey window PCA](examples/results/synthetic_demos/handwriting/style_embeddings.png)
+
+</details>
+
 ## Development and tests
 
 ```bash
@@ -526,6 +709,9 @@ python -m build
 Test inputs are generated or included in the repository; no dataset download is needed.
 `scripts/verify_full_install.py` checks the installed APIs. Examples use synthetic data to demonstrate
 the workflow, not establish process, chemical, or forensic accuracy.
+
+To prepare a GitHub source ZIP, run `python3 scripts/package_github.py`.
+The archive in `artifacts/github_upload/` includes source and synthetic results, excluding local environments, caches, and external instrument datasets.
 
 Benchmark records are in [benchmarks/results](benchmarks/results/).
 Rerun the [core benchmark](benchmarks/compare_core.py) or [decomposition comparison](benchmarks/compare_decomposition.py).
@@ -563,3 +749,5 @@ Algorithms, upstream tools, and further reading. SCRAMBLE is related research, n
 21. xraylib. [X-ray interaction data and documentation](https://github.com/tschoonj/xraylib/wiki). Used for characteristic line energies and relative rates.
 22. RosettaSciIO community. [Bruker detector-calibration discussion, issue #516](https://github.com/hyperspy/rosettasciio/issues/516). File-format and per-detector energy calibration notes.
 23. NIST/SEMATECH. [Multiple responses: the desirability approach](https://www.itl.nist.gov/div898/handbook/pri/section5/pri5322.htm). Engineering preference directions and targets; GreyTheory uses separately documented arithmetic GRA grades, not the geometric-mean desirability function.
+
+24. Pillow. [Image.open](https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open) and [ImageOps](https://pillow.readthedocs.io/en/stable/reference/ImageOps.html). File loading, EXIF orientation, and aspect-preserving padding; installed with the `images` extra.

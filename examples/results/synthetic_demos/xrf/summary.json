@@ -1,0 +1,42 @@
+{
+  "synthetic": true,
+  "seed": 7,
+  "spectra": 144,
+  "channels": 1024,
+  "train_maps": [
+    0,
+    1,
+    2
+  ],
+  "test_maps": [
+    3
+  ],
+  "target": "Synthetic Cu line-template mixing weight, not measured wt%",
+  "model": "Gaussian xraylib characteristic lines + continuum + Poisson noise; no full matrix/geometry model",
+  "spx_readback": "All generated spectra matched this project's reader",
+  "bruker_import": "EMSA exchange format; instrument/software import has not been tested",
+  "spx_compatibility": "Minimal project-reader fixture, not guaranteed vendor-importable SPX",
+  "metrics": [
+    {
+      "method": "PoissonPCA + Ridge",
+      "held_out_map_mae": 0.008611740211135244
+    },
+    {
+      "method": "GreyPCA(PoissonPCA) + Ridge",
+      "held_out_map_mae": 0.012563898765394587
+    },
+    {
+      "method": "Training-mean baseline",
+      "held_out_map_mae": 0.23394036040785485
+    }
+  ],
+  "selected_components": [
+    0,
+    1,
+    2
+  ],
+  "sources": [
+    "https://www.bruker.com/en/products-and-solutions/elemental-analyzers/eds-wds-ebsd-SEM-Micro-XRF/software-esprit-family/esprit-reporting-and-data-management.html",
+    "https://microscopy.org/files/galleries/MSA-MAS_FileFormatSpecification_1991.pdf"
+  ]
+}
