@@ -22,7 +22,9 @@ GreyTheory 是一套 Python 資料分析工具，提供灰色預測、灰關聯�
 python3 run.py
 ```
 
-第一次會建立 `.venv`、安裝套件並跑範例。之後用同一個指令就好，不用手動啟用環境。
+> [!TIP]
+> 第一次會建立 `.venv`、安裝套件並跑範例。
+> 之後用同一個指令就好，不用手動啟用環境。
 
 要在自己的程式裡使用，請用該程式的 Python 環境，在專案目錄安裝：
 
@@ -144,7 +146,8 @@ print(analysis.component_scores)
 
 `n_components` 是降維後的成分數，`top_k` 是 GRA 要留下的數量。
 只做降維時，用 `fit(train_factors)`，省略目標值即可。
-所有轉換都先用訓練資料 `fit`，測試資料只呼叫 `transform`。
+> [!IMPORTANT]
+> **先分訓練與測試資料。** 所有轉換都用訓練資料 `fit`，測試資料只呼叫 `transform`。
 
 ### 切換 PCA 方法
 
@@ -296,10 +299,18 @@ print(new_quality.scores)
 若膜厚要接近 100，可用 `BenefitNormalizer(["target"], bounds=[(80, 120)], targets=[100])`，
 再呼叫 `fit_transform` 或 `transform`。這個類別也從 `greytheory.analysis` 匯入。
 
-`bounds` 是正規化範圍，省略時使用訓練資料的最小、最大值。跨批次比較要沿用同一組範圍、權重和 `rho`。
+`bounds` 是正規化範圍，省略時使用訓練資料的最小、最大值。
+
+> [!NOTE]
+> **跨批次比較時，沿用同一組範圍、權重和 `rho`。**
+> 這樣加入其他樣本時，才不會改變同一筆資料的品質分數。
+
 超界預設報錯；設 `out_of_range="clip"` 才會截到界限，原始超界位置可用 `normalizer.out_of_bounds(data)` 查詢。
 
-品質分數是依指定偏好算出的評分，不代表良率或合格判定。硬性規格要另外檢查。
+> [!WARNING]
+> **品質分數不等於良率或合格判定。**
+> 分數依指定偏好計算，硬性規格仍要另外檢查。
+
 原始指標都轉成望大，也不代表每個主成分都會越大越好；主成分方向見上方說明。
 
 製程預測的完整範例：[semiconductor_adv_quality.py](examples/semiconductor_adv_quality.py)。
@@ -309,12 +320,33 @@ print(new_quality.scores)
 <details>
 <summary>評分公式與輸入檢查</summary>
 
-`grade_quality` 以全 1 為理想序列，固定差異極值為 0 和 1，再對 `rho / (1 - benefit + rho)` 取加權平均。
-固定範圍和權重時，加入其他樣本不會改變同一筆的分數。這與按同批候選計算極值的 `grey_relation` 不同，
-也與 NIST desirability 的幾何平均不同。加權平均允許不同指標互補。
+**計算方式**
 
-`BenefitNormalizer` 會檢查 NaN、無限值、欄位／方向不符、無可用界限的常數欄，以及欄名順序。
-`target` 必須嚴格落在上下界內，使用分段線性偏好。評分另會檢查權重，所有權重須非負且至少一個為正。
+`grade_quality` 先計算各指標的關聯系數，再依權重取平均：
+
+```text
+coefficient = rho / (1 - benefit + rho)
+score       = weighted_mean(coefficients)
+```
+
+| 設定 | 使用的值 |
+| --- | --- |
+| 理想序列 | 全 1 |
+| 差異最小值／最大值 | 固定為 0／1 |
+| 合併方式 | 加權平均，允許不同指標互補 |
+
+`grey_relation` 則從同批候選計算差異極值。NIST desirability 使用幾何平均，計算方式也不同。
+
+**輸入檢查**
+
+| 檢查項目 | 要求 |
+| --- | --- |
+| 數值 | 不含 NaN 或無限值 |
+| 欄位 | 數量、方向、欄名與順序須一致 |
+| 常數欄 | 必須提供有效的正規化界限 |
+| `target` | 嚴格落在上下界內，以分段線性方式計算偏好 |
+| 權重 | 全部非負，且至少一個為正 |
+
 品質正規化與 AdvPCA 的擾動半徑 `delta` 分別設定。
 
 </details>

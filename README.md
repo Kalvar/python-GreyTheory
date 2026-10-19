@@ -22,8 +22,9 @@ Requires Python 3.11 or later. Download or clone the repository, then run from i
 python3 run.py
 ```
 
-The first run creates `.venv`, installs dependencies, and runs the example.
-Use the same command next time; no environment activation is needed.
+> [!TIP]
+> The first run creates `.venv`, installs dependencies, and runs the example.
+> Use the same command next time; no environment activation is needed.
 
 To use GreyTheory in your own program, install it from the project directory
 with that program's Python environment:
@@ -154,7 +155,9 @@ print(analysis.component_scores)
 
 `n_components` sets the decomposition size; `top_k` sets how many components GRA keeps.
 Omit the target in `fit(train_factors)` to run dimensionality reduction alone.
-Fit all transforms on training data and use only `transform` on test data.
+> [!IMPORTANT]
+> **Split training and test data first.** Fit every transform on training data;
+> use only `transform` on test data.
 
 ### Switch PCA methods
 
@@ -315,12 +318,19 @@ For thickness near 100, use `BenefitNormalizer(["target"], bounds=[(80, 120)], t
 with `fit_transform` or `transform`. Import it from `greytheory.analysis`.
 
 `bounds` sets the normalization range. If omitted, it uses training minima and maxima.
-Reuse the same ranges, weights, and `rho` for comparisons across lots.
+
+> [!NOTE]
+> **Reuse the same ranges, weights, and `rho` across lots.**
+> This keeps a row's quality grade unchanged when other samples are added.
+
 Out-of-range values raise by default; `out_of_range="clip"` clips them to the bounds.
 Use `normalizer.out_of_bounds(data)` to locate the original violations.
 
-A quality grade expresses the chosen preferences; it is not yield or a pass/fail decision.
-Check mandatory specifications separately. Making original columns larger-is-better does not make
+> [!WARNING]
+> **A quality grade is not yield or a pass/fail decision.**
+> It reflects the chosen preferences. Check mandatory specifications separately.
+
+Making original columns larger-is-better does not make
 every PCA component larger-is-better; see the component-sign notes above.
 
 See [semiconductor_adv_quality.py](examples/semiconductor_adv_quality.py) for process prediction.
@@ -331,14 +341,34 @@ the target back into the predictor's inputs.
 <details>
 <summary>Scoring formula and input checks</summary>
 
-`grade_quality` uses an all-ones ideal, fixed difference extrema of 0 and 1, and a weighted mean
-of `rho / (1 - benefit + rho)`. With fixed bounds and weights, adding other rows leaves a row's grade unchanged.
-This differs from candidate-dependent `grey_relation` and from NIST's geometric-mean desirability.
-A weighted mean allows compensation between responses.
+**Calculation**
 
-`BenefitNormalizer` checks nonfinite values, direction/column mismatches, constant columns without
-usable bounds, and named-column order. A `target` must lie strictly inside its bounds and uses
-a piecewise linear benefit peak. Scoring checks for nonnegative weights with at least one positive weight.
+`grade_quality` computes a coefficient for each response, then takes a weighted mean:
+
+```text
+coefficient = rho / (1 - benefit + rho)
+score       = weighted_mean(coefficients)
+```
+
+| Setting | Value |
+| --- | --- |
+| Ideal sequence | All ones |
+| Minimum / maximum difference | Fixed at 0 / 1 |
+| Aggregation | Weighted mean; responses can compensate for each other |
+
+`grey_relation` instead takes difference extrema from the candidate batch.
+NIST desirability uses a geometric mean, so its calculation also differs.
+
+**Input checks**
+
+| Check | Requirement |
+| --- | --- |
+| Values | No NaN or infinity |
+| Columns | Matching count, directions, names, and order |
+| Constant columns | Valid normalization bounds must be supplied |
+| `target` | Strictly inside its bounds; uses a piecewise linear benefit peak |
+| Weights | Nonnegative, with at least one positive weight |
+
 Quality normalization is separate from AdvPCA's perturbation radius `delta`.
 
 </details>
