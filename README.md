@@ -2,93 +2,98 @@
 
 **English** | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
 
-GreyTheory is a Python library for grey-system forecasting, relational analysis,
-and spectral data analysis. It includes GM(0,N), GM(1,N), GM(1,1), GRA, PCA-based
-methods, and readers for Bruker SPX and selected BCF files.
+GreyTheory is a Python toolkit for grey forecasting, grey relational analysis (GRA), and PCA.
+Use it to forecast sequences, reduce feature tables, or compare spectra and measurements.
 
-## Run the example
+| Task | Start here |
+| --- | --- |
+| Forecast the next few values | [GM(1,1)](#time-series-forecasting) |
+| Compare features with a target | [GRA](#grey-relational-analysis-gra) |
+| Reduce dimensions, then select components | [GreyPCA](#pca-and-feature-selection) |
+| Score mixed quality preferences | [Quality scoring](#quality-scoring) |
+| Work with paths or images | [Feature extraction](#trajectory-image-and-window-features) |
+| Read Bruker files | [SPX/BCF](#bruker-file-readers) |
 
-Requires Python 3.11 or later.
+## Get started
 
-From the project directory, run:
+Requires Python 3.11 or later. Download or clone the repository, then run from its directory:
 
 ```bash
 python3 run.py
 ```
 
-The first run creates the local environment, installs the dependencies, and runs
-the example. Use the same command next time; there is no activation step.
-Setup runs again if the package configuration changes or dependencies are missing.
+The first run creates `.venv`, installs dependencies, and runs the example.
+Use the same command next time; no environment activation is needed.
 
-## Install as a library
+To use GreyTheory in your own program, install it from the project directory
+with that program's Python environment:
 
 ```bash
-pip install greytheory
+python -m pip install .
 ```
 
-This installs the latest PyPI release. The 2.0 API described here is still under
-development; to use it from this checkout, run `python -m pip install .`.
-Scientific dependencies are installed together. Larger modules load when used.
+## Time-series forecasting
 
-## Forecast a time series
+Pass observations to `fit`, then call `predict(2)` for the next two values:
 
 ```python
 from greytheory import GM11
 
-model = GM11(background_mode="corrected").fit([223.3, 227.3, 230.5, 238.1, 242.9, 251.1])
+series = [223.3, 227.3, 230.5, 238.1, 242.9, 251.1]
+model = GM11(background_mode="corrected").fit(series)
+print(model.predict(2))
+print(model.metrics)
+```
+
+Use at least three observations. For a two-level sliding-window forecast:
+
+```python
+model = GM11(background_mode="corrected", window_size=4, stride=1).fit(series)
 print(model.predict(2))
 ```
 
-`fit` computes immediately; `set_data` stores data for a later batch run. Both
-return the model. Constructor options include `alpha`, `background_mode`,
-`ridge_alpha`, and `rank_policy`.
+Read coefficients from `model.coefficients` and solver diagnostics from `model.diagnostics`.
+`set_data` stores observations for a later batch run. `reset()` clears results;
+`reset(clear_data=True)` also clears the data.
 
-For the two-level sliding-window forecast, use
-`GM11(window_size=4, stride=1).fit(series).predict(2)`. It fits local GM(1,1)
-models, then fits a second GM(1,1) model to their predictions. `predict` returns
-future values without changing the fitted model or its stored horizon.
-
-### Background weights and solver
+<details>
+<summary>Background weights, regularization, and errors</summary>
 
 `background_mode="corrected"` uses `alpha * current + (1-alpha) * previous`.
-The default, `"legacy"`, retains the original `alpha * current + alpha * previous`
-formula. At `alpha=0.5` they agree. For AGO values `[2, 5, 10]` and `alpha=0.8`,
-corrected backgrounds are `[4.4, 9.0]`; legacy backgrounds are `[5.6, 12.0]`.
+The default `"legacy"` mode multiplies both terms by `alpha`. They agree at `alpha=0.5`.
 
-The models use least squares with rank and condition diagnostics. Set
-`ridge_alpha` to add regularization, or `rank_policy="raise"` to reject
-unidentifiable fits. Results are available through `coefficients`,
-`diagnostics`, and, for GM(1,1), `metrics`.
-These results become available after fitting or completing a batch run.
+The solver uses least squares. Set `ridge_alpha` for regularization or
+`rank_policy="raise"` to reject fits without uniquely identifiable coefficients.
+Diagnostics include rank, condition number, and residuals.
 
-GM(1,1) needs at least three observations. `horizon=0` fits history without adding
-future predictions. Relative error is `None` when the actual observation is zero;
-MAE and RMSE remain available. `reset()` clears results; `reset(clear_data=True)`
-also clears observations.
+`horizon=0` fits history only. Relative error is `None` for a zero observation;
+MAE and RMSE remain available. `predict` leaves stored fit results unchanged.
 
-## Compare factors with GM(0,N) and GM(1,N)
+</details>
+
+## Multiple-factor models
+
+`GM0N` and `GM1N` model several factors against one target.
+Each row is an observation and each column is a factor:
 
 ```python
 from greytheory import GM0N
 
-# Rows are observations; columns are factors.
-X = [[.75, .5], [1.22, 1], [.2, .7], [1, .66], [1, 1], [1, .5]]
-y = [1, 1, 1, 1, 1, 1]
-model = GM0N().fit(X, y, feature_names=["factor_a", "factor_b"])
+factors = [[.75, .5], [1.22, 1], [.2, .7], [1, .66], [1, 1], [1, .5]]
+targets = [1, 1, 1, 1, 1, 1]
+model = GM0N().fit(factors, targets, feature_names=["factor_a", "factor_b"])
 print(model.coefficients)
 print(model.influence_degrees)
 ```
 
-`X` has shape `(observations, factors)` and `y` has shape `(observations,)`.
-Names are optional and default to `x0`, `x1`, etc. Use `GM1N().fit(X, y)` for
-GM(1,N). Its development and driving coefficients are exposed separately as
-`development_coefficient` and `driving_coefficients`.
+For GM(1,N), use `GM1N().fit(factors, targets)`. Feature names are optional.
+`influence_degrees` ranks absolute coefficients, which depend on units and collinearity.
+Use GRA below to compare sequences with a reference.
 
-`influence_degrees` preserves the original ranking by absolute coefficient.
-The ranking depends on variable scales and collinearity. GRA provides a separate
-comparison against a reference sequence.
+## Grey relational analysis (GRA)
 
-## Grey relational analysis
+Supply a reference sequence and candidate sequences. Higher scores mean closer matches
+under the chosen normalization:
 
 ```python
 from greytheory.analysis import grey_relation
@@ -102,288 +107,255 @@ scores = grey_relation(
 print(scores)
 ```
 
-For absolute differences `Δ`, the point coefficient is
-`(Δmin + rho*Δmax) / (Δ + rho*Δmax)`. Scores are weighted means of those
-coefficients. `rho` is in `(0, 1]`; position weights must be nonnegative.
+`normalize` accepts `none`, `minmax`, `zscore`, `initial`, or `mean`.
+You can also import `GreyGRA` from `greytheory.analysis` and use `.score(...)` or `.rank(...)`.
 
-`normalize` accepts `none`, `minmax`, `zscore`, `initial`, and `mean` and acts
-on each sequence. Extrema are calculated over the current candidate batch, so
-changing candidates can change scores and ranks. A score of 1 does not, by itself,
-prove that the original values are identical. `GreyGRA().score(...)` and
-`GreyGRA().rank(...)` are also available from `greytheory.analysis`.
+Scores depend on the candidate batch, so adding or removing candidates can change the ranking.
+They measure grey relation, not causal importance or prediction accuracy.
 
-## Feature selection and PCA
+<details>
+<summary>GRA formula</summary>
 
-Choose the tool according to what you want to rank:
+For each absolute difference `Δ`, the coefficient is
+`(Δmin + rho*Δmax) / (Δ + rho*Δmax)`. The score is a weighted mean.
+`rho` must be in `(0, 1]`; weights must be nonnegative.
+Difference extrema come from the same candidate batch. A score of 1 need not mean identical raw values.
 
-| Comparison | Tool |
-| --- | --- |
-| Numerical sequences against a reference | `grey_relation` or `GreyGRA` |
-| Original features against a known target | `GreyFeatureSelector` |
-| Components that summarize many features, scored against a target | `GreyPCA` |
+</details>
 
-The example uses synthetic data: one sample per row, one original feature per column,
-and one known numerical target per sample.
+## PCA and feature selection
+
+`GreyFeatureSelector` selects original columns. `GreyPCA` reduces dimensions, then uses
+GRA to select components against a target. This example uses synthetic data:
 
 ```python
 import numpy as np
-from sklearn.decomposition import IncrementalPCA
 from sklearn.model_selection import train_test_split
 from greytheory.analysis import GreyFeatureSelector, GreyPCA
 
 random_generator = np.random.default_rng(7)
-factor_values = random_generator.normal(size=(48, 6))
-target_values = factor_values[:, 0] + 0.05 * random_generator.normal(size=48)
+factors = random_generator.normal(size=(48, 6))
+targets = factors[:, 0] + 0.05 * random_generator.normal(size=48)
 train_factors, test_factors, train_targets, _ = train_test_split(
-    factor_values, target_values, random_state=7
+    factors, targets, random_state=7
 )
 
 selector = GreyFeatureSelector(k=2).fit(train_factors, train_targets)
 selected_factors = selector.transform(test_factors)
 
 analysis = GreyPCA(
-    n_components=4,
-    method="sparse",
-    method_params={"alpha": 0.1},
-    top_k=2,
-    standardize=True,
+    n_components=4, method="sparse", method_params={"alpha": 0.1},
+    top_k=2, standardize=True,
 ).fit(train_factors, train_targets)
-reduced_factors = analysis.transform(test_factors)
+components = analysis.transform(test_factors)
 print(analysis.selected_components)
 print(analysis.component_scores)
-
-custom_analysis = GreyPCA(
-    estimator=IncrementalPCA(n_components=4, batch_size=12),
-    top_k=2,
-).fit(train_factors, train_targets)
-custom_reduced_factors = custom_analysis.transform(test_factors)
 ```
 
-Fit scaling, selection, and decomposition on training data only. The selector
-expects a continuous target. `GreyPCA(...).fit(train_factors)` runs decomposition
-without GRA; passing `train_targets` adds supervised GRA scoring. `top_k` keeps
-that many scorable components; `None` keeps all nonconstant components. By default both signs are compared in one GRA batch.
+`n_components` sets the decomposition size; `top_k` sets how many components GRA keeps.
+Omit the target in `fit(train_factors)` to run dimensionality reduction alone.
+Fit all transforms on training data and use only `transform` on test data.
 
-| `GreyPCA(method=...)` | Decomposition | Example `method_params` |
+### Switch PCA methods
+
+Change `method` and pass its settings in `method_params`:
+
+| `method` | Decomposition | Example `method_params` |
 | --- | --- | --- |
 | `"pca"` (default) | PCA | `{"whiten": True}` |
-| `"sparse"` | SparsePCA | `{"alpha": 0.1, "max_iter": 1000}` |
+| `"sparse"` | SparsePCA | `{"alpha": 0.1}` |
 | `"kernel"` | KernelPCA | `{"kernel": "rbf", "gamma": 0.1}` |
-| `"robust"` | PCP on training data, then PCA projection | `{"tol": 1e-6}` |
+| `"robust"` | PCA projection learned from a PCP low-rank matrix | `{"tol": 1e-6}` |
 | `"robust_sparse"` | Huber/elastic-net RobustSparsePCA | `{"alpha": 0.1, "kappa": 1.0}` |
-| `"adv"` | AdvPCA | `{"delta": 0.05}` |
+| `"adv"` | AdvPCA | `{"delta": 0.01, "max_iter": 1000}` |
 
-Set `n_components` on `GreyPCA` and backend options in `method_params`.
-Alternatively, pass an `estimator` with `fit`/`transform` and sklearn-compatible
-cloning. It must produce a dense matrix with one row per input observation.
-The estimator controls its own component count and is cloned before fitting;
-choose either `estimator` or `method`/`method_params`. Custom nonnegative-count
-models such as `PoissonPCA` should use `standardize=False`, the default.
-
-`analysis.reducer` exposes the fitted backend. `component_scores` contains GRA
-scores for all components, and `selected_components` contains zero-based indices
-in output order. Selected columns retain their original component order.
-`inverse_transform` fills omitted components with zeros before reconstruction;
-KernelPCA reconstruction is approximate, and some custom models provide no inverse.
-`explained_variance_ratio` is available only when the backend supplies it.
-
-The `"robust"` path learns a PCA projection from PCP's low-rank training matrix.
-Both training and new observations are projected with that fitted PCA; new
-observations are not automatically PCP-cleaned. `RobustPCA` remains available
-for direct low-rank/sparse matrix decomposition. `PCAAdapter`, `RobustSparsePCA`,
-and `AdvPCA` can also be used independently. RobustSparsePCA and AdvPCA
-solve nonconvex problems; inspect convergence diagnostics at iteration limits.
-AdvPCA's sparse-encoding objective differs from PCP's additive outlier model.
-
-Runnable comparison: [choose or supply a decomposition](examples/grey_pca_methods.py).
-
-### Inspect rankings from highest to lowest score
-
-Using the training data and fitted `analysis` above, rank original features and components separately:
-
-```python
-from greytheory.analysis import grey_relation
-
-feature_names = [f"factor_{index + 1}" for index in range(train_factors.shape[1])]
-feature_scores = grey_relation(train_targets, train_factors.T, normalize="zscore")
-feature_ranking = np.argsort(-feature_scores, kind="stable")
-for rank, index in enumerate(feature_ranking, start=1):
-    print(rank, feature_names[index], float(feature_scores[index]))
-
-valid_components = np.flatnonzero(np.isfinite(analysis.component_scores))
-component_ranking = valid_components[np.argsort(-analysis.component_scores[valid_components], kind="stable")]
-for rank, index in enumerate(component_ranking, start=1):
-    print(rank, f"component_{index + 1}", float(analysis.component_scores[index]))
-```
-
-The first ranking refers to original columns; the second refers to learned components,
-each of which may combine several columns. Scores describe grey relation to the chosen
-target, not causal importance, prediction accuracy, or writer identity probabilities.
-Without a target, `analysis.component_scores` is `None` and component ranking is unavailable.
-Use held-out data to check whether GRA selection helps prediction.
-
-Automatic overpainting detection and handwriting authorship comparison are not implemented.
-Generic trajectory/image-patch features are available below; handwriting still needs text-region selection
-and a dedicated comparison pipeline. Writer IDs should
-not be treated as continuous targets. These applications require relevant data and expert validation.
-
-## PCA entry points and quality directions
-
-### Choose a decomposition
-
-These constructors use the training/test matrices above. Choose a dictionary key;
-all six backends expose the same `fit`/`transform` workflow.
-For AdvPCA inspect both `analysis.reducer.converged` (outer loop) and
-`analysis.reducer.inner_converged` (final regressions); an iteration limit is not convergence.
-
-```python
-from greytheory.analysis import GreyPCA
-
-models = {
-    "pca": GreyPCA(3, method="pca", standardize=True),
-    "sparse": GreyPCA(3, method="sparse", method_params={"alpha": 0.1}, standardize=True),
-    "kernel": GreyPCA(3, method="kernel", method_params={"gamma": 0.1}, standardize=True),
-    "robust": GreyPCA(3, method="robust", standardize=True),
-    "robust_sparse": GreyPCA(3, method="robust_sparse", method_params={"alpha": 0.1}, standardize=True),
-    "adv": GreyPCA(3, method="adv", method_params={"delta": 0.05, "max_iter": 1000}, standardize=True),
-}
-analysis = models["adv"].fit(train_factors, train_targets)
-components = analysis.transform(test_factors)
-```
-Custom models use `GreyPCA(estimator=IncrementalPCA(3), top_k=2)` and own their component count.
-Standalone imports are `PCAAdapter`, `RobustPCA`, `RobustSparsePCA`, and `AdvPCA`.
-Use `PCAAdapter(3, method="pca")`, `method="sparse"`, or `method="kernel"`;
-`RobustPCA().fit(data)` exposes low-rank/sparse matrices, while `RobustSparsePCA(3).fit(data)`
-and `AdvPCA(3, delta=0.05).fit(data)` provide standalone projections. These entry points do not add GRA or unit scaling.
-
-Related spectral methods are imported from `greytheory.spectroscopy`:
-
-| Entry point | Call and required input |
-| --- | --- |
-| `PoissonPCA` | `PoissonPCA(3).fit_transform(counts)`; nonnegative counts, approximate variance stabilization |
-| `fit_mlpca` | `fit_mlpca(data, variances, n_components=3)`; positive error variance for every entry |
-| `fit_mnf` | `fit_mnf(cube, n_components=3)`; spatial cube, noise estimated from neighboring pixels |
-
-`GreyPCA(estimator=PoissonPCA(3), standardize=False)` also supports the count transformer; do not z-score its input into negative values.
-
-### Normalize quality preferences
-
-Warpage may be smaller-is-better while shear force is larger-is-better. Define those
-preferences on the original responses. Values and limits below are illustrative.
-
-```python
-from greytheory.analysis import rank_quality
-
-# Columns: warpage, shear force. Illustrative values and normalization limits.
-quality = rank_quality(
-    [[80, 10], [40, 20], [20, 25]],
-    directions=["smaller", "larger"],
-    bounds=[(0, 100), (0, 30)],
-    weights=[0.5, 0.5],
-)
-print(quality.normalized_values)
-print(quality.scores)
-print(quality.ranking)  # [2, 1, 0]; zero-based row indices, best first
-```
-Supply fixed per-column `(lower, upper)` normalization bounds when justified.
-Without bounds, only fitted-row extrema are used; these are outlier-sensitive and grades fitted
-with different bounds cannot be compared across lots. Reuse `quality.normalizer.transform(new_quality)`
-and `grade_quality(benefits, weights=quality.weights, rho=quality.rho)` for new rows.
-
-`grade_quality` compares benefit rows with all ones using fixed difference extrema 0 and 1:
-coefficients are `rho / (1 - benefit + rho)`, followed by a weighted mean.
-Unlike the candidate-dependent extrema in `grey_relation`, fixed bounds and weights keep a row's
-grade unchanged when other candidates are added. Grades are not yield, probabilities, or acceptance decisions.
-A weighted mean permits compensation between responses; enforce mandatory specifications separately.
-
-`BenefitNormalizer(directions, bounds=..., targets=...)` also supports `fit_transform` and `transform`.
-Directions are `"larger"`, `"smaller"`, or `"target"`. For a nominal thickness, for example, use
-`directions=["smaller", "larger", "target"]`, `targets=[None, None, 100]`, and three bound pairs.
-A target uses a piecewise linear benefit peak strictly inside its bounds. This is not NIST's geometric-mean desirability grade.
-
-Validation rejects nonfinite inputs, mismatched directions/weights/columns, constant columns without
-usable bounds, and out-of-range values. Explicit `out_of_range="clip"` saturates values;
-`normalizer.out_of_bounds(data)` still reports the original violations. Named columns must retain their order.
-This is preference normalization; AdvPCA's perturbation radius remains a separate `delta` setting.
-
-### Handle component signs against a reference
-
-**Larger-is-better input columns do not make PC1 a larger-is-better quality index.**
-Components can mix positive/negative loadings and have arbitrary signs.
-`GreyPCA` now defaults to `component_direction="either"`, comparing both signs in one shared GRA
-batch and keeping the higher grade. Constant components are excluded with NaN scores;
-`top_k=None` keeps all scorable components. Original-feature `GreyFeatureSelector` keeps its signed
-default; opt into `direction="either"` where either association is useful.
-
-With a meaningful quality reference, optionally align output signs during training:
+For example, switch to AdvPCA:
 
 ```python
 analysis = GreyPCA(
-    4, method="adv", method_params={"delta": 0.05, "max_iter": 1000},
-    standardize=True, top_k=2,
-    component_direction="either", align_to_target=True,
-).fit(training_process_features, training_quality_scores)
-components = analysis.transform(new_process_features)
-print(analysis.component_scores)
-print(analysis.component_directions)
-print(analysis.component_direction_ambiguous)
+    3, method="adv", method_params={"delta": 0.01, "max_iter": 1000},
+    top_k=2, standardize=True,
+).fit(train_factors, train_targets)
+components = analysis.transform(test_factors)
+print(analysis.reducer.converged)
+print(analysis.reducer.inner_converged)
 ```
-Process/sensor features and measured quality responses serve different roles. If warpage/shear
-form the target, do not also feed them into a predictor of that target. With only a quality table,
-`rank_quality` is sufficient; PCA is not needed to calculate its grade.
-Alignment is frozen at fit, reversed for inverse transforms, and rejects tied sign grades.
-The default `align_to_target=False` preserves backend signs. Set `component_direction="positive"`
-for the earlier signed comparison. Reference alignment is not physical monotonicity, causation,
-or stability across lots; it also does not solve component swaps or rotations.
 
-### Choose how many components to retain
+Check both outer and final inner convergence before evaluating AdvPCA results.
+See [grey_pca_methods.py](examples/grey_pca_methods.py) for a comparison of the methods.
 
-80–85% is a possible starting threshold for ordinary PCA, not a guarantee of retaining that
-fraction of process physics or quality information. Low-variance axes can still matter for quality.
+You can also supply a sklearn-compatible model with its own component count:
 
 ```python
-# Conventional PCA: choose the number of components using training variance.
+from sklearn.decomposition import IncrementalPCA
+
+analysis = GreyPCA(
+    estimator=IncrementalPCA(n_components=4, batch_size=12), top_k=2,
+).fit(train_factors, train_targets)
+```
+
+Custom models need `fit`, `transform`, and sklearn clone support, and must return a dense
+2D matrix with one row per observation. Use either `estimator` or `method`/`method_params`.
+
+### Inspect selected components and rankings
+
+`component_scores` contains GRA scores. `selected_components` contains zero-based indices;
+output columns retain their original component order. To list scores from highest to lowest:
+
+```python
+valid = np.flatnonzero(np.isfinite(analysis.component_scores))
+ranking = valid[np.argsort(-analysis.component_scores[valid], kind="stable")]
+for index in ranking:
+    print(f"PC{index + 1}", float(analysis.component_scores[index]))
+```
+
+Original-column scores are in `selector.scores`. Without a target, `component_scores` is `None`.
+This selection works with continuous targets. Writer IDs and other categorical labels need
+a separate classification or comparison model.
+
+### Choose the component count
+
+For ordinary PCA, you can specify the cumulative variance to retain, such as 85%:
+
+```python
 ordinary = GreyPCA(n_components=0.85, method="pca", standardize=True).fit(train_factors)
 print(ordinary.n_components_fitted)
 print(ordinary.explained_variance_ratio.sum())
 
-# AdvPCA: inspect actual reconstruction, without claiming additive variance.
-adv = GreyPCA(4, method="adv", method_params={"delta": 0.05}, standardize=True).fit(train_factors)
-report = adv.reconstruction_report(train_factors, threshold=0.85)
+report = analysis.reconstruction_report(train_factors, threshold=0.85)
 print(report.prefix_coverage)
-print(report.first_prefix_at_threshold)  # None if no evaluated prefix reaches it
-print(report.selected_coverage)         # Coverage after optional GRA selection
-```
-Fractional `n_components` is supported only for ordinary `method="pca"`.
-AdvPCA/SparsePCA do not report a fabricated ordinary-PCA cumulative variance ratio.
-Reconstruction coverage is `1 - SSE / SST` in the fitted input space (standardized when requested).
-It can be negative or nonmonotone for other decompositions, and is not explained variance.
-Prefixes zero later components of one fitted model; fitting a smaller model may give different results.
-GRA selection can lower coverage below the original threshold; inspect `selected_coverage` separately.
-The report never silently adds components to meet a threshold.
-
-A runnable synthetic example separates responses from process features, splits by lot,
-compares held-out Ridge predictions with a training-mean baseline, and reports coverage:
-
-```bash
-.venv/bin/python examples/semiconductor_adv_quality.py
+print(report.first_prefix_at_threshold)
+print(report.selected_coverage)
 ```
 
-Choose bounds, directions, and weights from engineering knowledge. Fit transformations and tune
-`delta`, component counts, and `top_k` on training-side validation only. Compare ordinary PCA and
-AdvPCA on unseen lots/wafers/time periods before drawing process conclusions.
+Fractional `n_components` is supported only for ordinary PCA. For AdvPCA or SparsePCA,
+inspect reconstruction coverage instead. An 80–85% threshold is a starting point;
+use held-out data to check prediction performance, since low-variance components can still carry quality signals.
 
-## Multidimensional trajectories and Grey window features
+<details>
+<summary>Standalone decompositions and spectral PCA</summary>
 
-**Numerical input → trajectory/image-patch features → Grey window features → PCA/GRA → regression or reference distances.**
+Import these from `greytheory.analysis` to use them without GRA:
 
-| Input | Shape | Entry point |
+| Call | Purpose |
+| --- | --- |
+| `PCAAdapter(3, method="pca")` | PCA |
+| `PCAAdapter(3, method="sparse", alpha=0.1)` | SparsePCA |
+| `PCAAdapter(3, method="kernel", gamma=0.1)` | KernelPCA |
+| `RobustPCA().fit(data)` | Exposes `low_rank` and `sparse` matrices |
+| `RobustSparsePCA(3).fit(data)` | Huber/elastic-net sparse projection |
+| `AdvPCA(3, delta=0.05).fit(data)` | AdvPCA projection |
+
+Import spectral methods from `greytheory.spectroscopy`:
+
+| Call | Required input |
+| --- | --- |
+| `PoissonPCA(3).fit_transform(counts)` | Nonnegative counts; approximate variance stabilization |
+| `fit_mlpca(data, variances, n_components=3)` | Independent errors with positive variance for each entry |
+| `fit_mnf(cube, n_components=3)` | Spatial cube; noise estimated from neighboring pixels |
+
+Use `GreyPCA(estimator=PoissonPCA(3), standardize=False)` to combine PoissonPCA with GRA.
+Keep counts nonnegative; do not apply standardization that produces negative values.
+
+</details>
+
+<details>
+<summary>Component signs, reconstruction, and method differences</summary>
+
+PCA component signs can flip. By default, `component_direction="either"` compares both signs
+in one GRA batch and keeps the higher score. Constant components get NaN scores and are excluded;
+`top_k=None` keeps all scorable components. `GreyFeatureSelector` compares the original direction
+by default; set `direction="either"` to compare both.
+
+With a quality target, add `align_to_target=True` to orient output signs toward the reference.
+Signs are fixed during training; tied scores raise an error.
+Inspect `component_directions` and `component_direction_ambiguous` for the decisions.
+This handles sign choices, not physical monotonicity or component swaps/rotations across refits.
+Set `component_direction="positive"` for signed GRA comparison.
+
+`inverse_transform` fills omitted components with zeros. KernelPCA reconstruction is approximate;
+some custom models have no inverse. `reconstruction_report` measures `1 - SSE / SST` for the
+specified components without changing their count. With `standardize=True`, it uses standardized space.
+For other decompositions, coverage can be negative or nonmonotone.
+`first_prefix_at_threshold=None` means no evaluated prefix reached the threshold;
+check `selected_coverage` separately after GRA selection.
+Prefixes zero later components of one fitted model; refitting fewer components may give different results.
+
+`"robust"` learns its projection from PCP's low-rank training matrix. New rows use that projection
+without another PCP cleanup. AdvPCA's sparse-encoding objective differs from PCP's low-rank/additive-outlier split.
+RobustSparsePCA and AdvPCA involve nonconvex optimization; check convergence diagnostics.
+
+</details>
+
+## Quality scoring
+
+For example, lower warpage and higher shear force can both be desirable.
+Convert them to 0–1 benefit values, then compute a weighted GRA grade:
+
+```python
+from greytheory.analysis import rank_quality, grade_quality
+
+quality = rank_quality(
+    [[80, 10], [40, 20], [20, 25]],  # Rows: samples. Columns: warpage, shear force.
+    directions=["smaller", "larger"],
+    bounds=[(0, 100), (0, 30)],      # Example bounds; replace with process-specific values.
+    weights=[0.5, 0.5],
+)
+print(quality.normalized_values)
+print(quality.scores)
+print(quality.ranking)  # [2, 1, 0]: row indices, best first
+
+new_benefits = quality.normalizer.transform([[30, 22]])
+new_quality = grade_quality(new_benefits, weights=quality.weights, rho=quality.rho)
+print(new_quality.scores)
+```
+
+`directions` accepts `larger`, `smaller`, or `target`.
+For thickness near 100, use `BenefitNormalizer(["target"], bounds=[(80, 120)], targets=[100])`
+with `fit_transform` or `transform`. Import it from `greytheory.analysis`.
+
+`bounds` sets the normalization range. If omitted, it uses training minima and maxima.
+Reuse the same ranges, weights, and `rho` for comparisons across lots.
+Out-of-range values raise by default; `out_of_range="clip"` clips them to the bounds.
+Use `normalizer.out_of_bounds(data)` to locate the original violations.
+
+A quality grade expresses the chosen preferences; it is not yield or a pass/fail decision.
+Check mandatory specifications separately. Making original columns larger-is-better does not make
+every PCA component larger-is-better; see the component-sign notes above.
+
+See [semiconductor_adv_quality.py](examples/semiconductor_adv_quality.py) for process prediction.
+It keeps process features separate from quality targets, splits by lot, and compares
+AdvPCA/GRA + Ridge against a mean baseline. Do not feed warpage/shear values used to define
+the target back into the predictor's inputs.
+
+<details>
+<summary>Scoring formula and input checks</summary>
+
+`grade_quality` uses an all-ones ideal, fixed difference extrema of 0 and 1, and a weighted mean
+of `rho / (1 - benefit + rho)`. With fixed bounds and weights, adding other rows leaves a row's grade unchanged.
+This differs from candidate-dependent `grey_relation` and from NIST's geometric-mean desirability.
+A weighted mean allows compensation between responses.
+
+`BenefitNormalizer` checks nonfinite values, direction/column mismatches, constant columns without
+usable bounds, and named-column order. A `target` must lie strictly inside its bounds and uses
+a piecewise linear benefit peak. Scoring checks for nonnegative weights with at least one positive weight.
+Quality normalization is separate from AdvPCA's perturbation radius `delta`.
+
+</details>
+
+## Trajectory, image, and window features
+
+Build a pipeline from numeric inputs:
+
+**Data → trajectory/image features → Grey window features → PCA/GRA → regression or distance comparison**
+
+| Input | Shape | Use |
 | --- | --- | --- |
-| Spectra or scalar sequences | `(samples, points)`; align spectral energy axes first | `GreyWindowFeatures` |
-| 2D, 3D, or higher-dimensional paths | List of `(points, dimensions)` arrays; lengths may differ | `TrajectoryFeatures` → `GreyWindowFeatures` |
-| Grayscale/multichannel image arrays | `(samples, height, width)` or `(samples, height, width, channels)` | `ImagePatchFeatures` → `GreyWindowFeatures` |
+| Spectra or scalar sequences | `(samples, points)` | `GreyWindowFeatures`; align spectral energy axes first |
+| 2D and higher-dimensional paths | List of `(points, dimensions)` arrays | `TrajectoryFeatures` → `GreyWindowFeatures` |
+| Grayscale/multichannel images | `(samples, height, width[, channels])` | `ImagePatchFeatures` → `GreyWindowFeatures` |
 
-This example contains two recorded strokes with timestamps. Each row is one ordered spatial point.
+Here is a 2D path with timestamps and stroke IDs. The same class handles 3D and 5D paths:
 
 ```python
 from greytheory.features import Trajectory, TrajectoryFeatures, GreyWindowFeatures
@@ -393,12 +365,10 @@ path = Trajectory(
     timestamps=[0, 0.5, 1, 3, 3.5, 4],
     stroke_ids=[0, 0, 0, 1, 1, 1],
 )
-extractor = TrajectoryFeatures(n_points=16, include_time=True)
-sequences = extractor.fit_transform([path])  # Wrap even a single path in a list.
+sequences = TrajectoryFeatures(n_points=16, include_time=True).fit_transform([path])
 windows = GreyWindowFeatures(window_size=8, stride=4, boundary_channel=-1)
 features = windows.fit_transform(sequences)
 print(features.shape)
-print(windows.get_feature_names_out())
 
 paths_3d = [[[0, 0, 0], [1, 2, 1], [2, 2, 3]]]
 sequences_3d = TrajectoryFeatures(n_points=16).fit_transform(paths_3d)
@@ -406,70 +376,54 @@ paths_5d = [[[0, 0, 0, 0, 0], [1, 2, 1, 3, 2], [2, 2, 3, 4, 5]]]
 sequences_5d = TrajectoryFeatures(n_points=16).fit_transform(paths_5d)
 ```
 
-Trajectory channels retain positions, step directions, step distance, turn angle, and stroke starts.
-Default resampling is by arc length within each stroke. `include_time=True` resamples by time
-and adds speed; strictly increasing timestamps are required for every sample. Changes between
-consecutive integer `stroke_ids` start new strokes. Each stroke needs at least two recorded points
-and two output points. Pen-up gaps contribute neither travel distance nor speed.
-`center=True` removes the starting position; `scale=False` preserves spatial scale by default.
-Speed uses coordinate units per timestamp unit, and turn angles are in radians.
-With `scale=True`, distances and speeds use normalized spatial units. Coordinate columns are spatial
-dimensions: do not append timestamps or pressure as coordinates. Dedicated pressure-channel handling
-is not implemented, and actual timing/pressure cannot be recovered from a static image.
+For images, import `ImagePatchFeatures` from `greytheory.features` and use
+`ImagePatchFeatures(grid_shape=(4, 8)).fit_transform(images)`. It extracts per-cell means,
+standard deviations, and horizontal/vertical intensity changes. Also use `boundary_channel=-1` downstream.
 
-For each modeled channel/window, `GreyWindowFeatures` emits amplitude, mean, std, mean within-segment
-change, GM coefficients, discrete-equation RMSE, full-rank coverage, and GM coverage; each window
-also has a segment count. It uses the existing AGO/solver core without future extrapolation or
-second-level forecasting. By default each window/channel is scaled by its maximum absolute value,
-with the original amplitude retained. `gm_equation_rmse` is not a forecast error.
-`gm_coverage` is the fraction of points in fragments with at least three points; shorter fragments
-contribute zero coefficients and zero coverage. `gm_full_rank_coverage` counts points in full-rank
-fragments. Do not interpret coefficients alone when coverage or full-rank coverage is low.
-Use `boundary_channel=-1` for the adapters above: the final channel marks boundaries and is not
-modeled. Fits and differences never bridge boundaries. Stride cannot exceed window size; a final
-full-width window covers the tail, potentially adding overlap.
-
-`ImagePatchFeatures(grid_shape=(4, 8))` retains each channel's mean/std and mean absolute horizontal/
-vertical pixel differences per grid cell. It accepts arrays, without OCR, character segmentation,
-or pigment identification. Its final channel marks grid-row starts. Use `boundary_channel=-1`
-downstream to avoid modeling artificial row-wrap transitions. Inspect `patch_bounds`, `windows`,
-and feature names to trace descriptors. Extractors fit input schemas only; PCA/GRA/regression must
-still be fitted on training data only.
-
-With training paths, one known continuous target per path, and independent test paths:
+To add regression, use sklearn's Pipeline. Here, `train_paths` and `test_paths` are lists of
+`Trajectory` objects; `train_targets` contains one continuous value per training path:
 
 ```python
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from greytheory.analysis import GreyPCA
-from greytheory.features import TrajectoryFeatures, GreyWindowFeatures
 
 model = Pipeline([
     ("trajectory", TrajectoryFeatures(n_points=32, include_time=True)),
     ("windows", GreyWindowFeatures(8, stride=4, boundary_channel=-1)),
-    ("reducer", GreyPCA(n_components=4, top_k=2, standardize=True)),
+    ("reducer", GreyPCA(4, top_k=2, standardize=True)),
     ("model", Ridge(alpha=1)),
 ])
 model.fit(train_paths, train_targets)
 predictions = model.predict(test_paths)
 ```
 
-`train_paths` and `test_paths` are lists of `Trajectory` objects as above; `train_targets` contains
-one measured numerical target per training path. Without a continuous target, use
-`GreyPCA(n_components=4, standardize=True)` without `top_k`, then compare reference distances.
-Generic regression/reference ranking does not establish authorship or overpainting; dedicated data,
-models, and validation remain necessary. Component GRA compares both signs by default; still compare against an
-unselected baseline.
+See [grey_feature_pipeline.py](examples/grey_feature_pipeline.py) for a runnable example.
+These features can feed a model; handwriting authorship and overpainting detection still need
+dedicated models and validation data.
 
-Run the complete [synthetic example](examples/grey_feature_pipeline.py) for 2D/3D/5D paths, pen-up
-boundaries, images, spectra, regression, and reference ranking:
+<details>
+<summary>Path, window, and image input requirements</summary>
 
-```bash
-.venv/bin/python examples/grey_feature_pipeline.py
-```
+Paths are resampled by stroke arc length by default, keeping position, direction, distance,
+turning angle, and stroke boundaries. `include_time=True` resamples by time and adds speed;
+timestamps must increase strictly. Each stroke needs at least two input points, and
+`n_points` must be at least twice the stroke count. Pen-up gaps are excluded from distance and speed.
+`center=True` removes the start position; `scale=False` keeps spatial units. Speed uses coordinate/time units
+and angles use radians. With `scale=True`, distances and speeds use normalized units.
+Keep time and pressure out of spatial coordinates; dedicated pressure handling is not provided.
 
-Run `python3 run.py` first to set up the environment if needed. All inputs are generated locally.
-Synthetic prediction errors do not establish forensic or chemical accuracy.
+Grey windows extract amplitude, mean, standard deviation, within-segment changes, GM coefficients,
+equation RMSE, and coverage. They do not forecast. Each window/channel is scaled by its maximum absolute value,
+with original amplitude retained. Fragments shorter than three points get zero GM coefficients and `gm_coverage`;
+check `gm_full_rank_coverage` too. Low coverage makes coefficients less informative.
+`boundary_channel=-1` prevents fits across strokes or image-grid rows. Keep `stride` no larger than the window.
+
+Images must be numeric arrays. Inspect positions with `patch_bounds` and `windows`, and names with
+`get_feature_names_out()`. Image features do not include OCR or character segmentation;
+static images cannot provide actual writing speed or pressure.
+
+</details>
 
 ## Bruker file readers
 
@@ -483,64 +437,55 @@ energy_keV = image.energy_axes[0]
 roi = image.get_spectra((0, 0, 2, 2), detector=0)
 ```
 
-SPX exposes counts, metadata, and a calibrated energy axis when present.
-BCF support is limited to uncompressed SFS streams with indexed, instructively
-packed pixels. Other packed encodings, outer compression, and BCF v2 are not supported.
-Counts use `uint64`; ROI bounds are `(y0, x0, y1, x1)`, excluding the upper bounds.
-Each detector retains its own energy calibration; `sum_detectors` rejects mismatched axes.
+SPX exposes counts, metadata, and energy calibration when present. BCF keeps each detector's calibration.
+ROI bounds are `(y0, x0, y1, x1)`, excluding the upper bounds; counts use `uint64`.
 
-Reader tests generate small SPX/BCF files in temporary directories and require no
-external instrument dataset.
-Generated fixtures check the implemented layout; they do not establish compatibility
-with every instrument/software version. Check your own files before using the reader.
+BCF support covers indexed, instructively packed pixels in uncompressed SFS streams.
+Other encodings, outer compression, and BCF v2 are unsupported. `sum_detectors` rejects mismatched energy axes.
+Check readings against the instrument software for your files.
 
 ## Process and spectroscopy tools
 
-| Module | Available tools |
+| Module | Tools |
 | --- | --- |
-| `greytheory.semiconductor` | PLS quality regression, dynamic/multiway PCA monitoring, GRA feature ranking, Latin-hypercube sampling, GP expected-improvement proposals |
-| `greytheory.spectroscopy` | AsLS baseline correction, NMF, MCR-ALS, MNF, Anscombe-based Poisson PCA, fixed-variance weighted low-rank fitting, X-ray line lookup, fixed-center peak fitting |
+| `greytheory.semiconductor` | PLS quality regression, dynamic/multiway PCA monitoring, GRA ranking, Latin-hypercube sampling, GP expected-improvement proposals |
+| `greytheory.spectroscopy` | AsLS baseline correction, NMF, MCR-ALS, MNF, Poisson PCA, weighted low-rank fitting, X-ray line lookup, fixed-center peak fitting |
 
-Poisson PCA uses an approximate variance-stabilizing transform. `fit_mlpca` assumes
-independent errors with supplied, positive variances. XRF line amplitudes require
-further instrument and matrix calibration before being interpreted as concentrations.
-
-Runnable examples: [time-series models](example.py),
-[synthetic spectra](examples/hyperspectral_gra_pca.py),
-[held-out manufacturing lots](examples/semiconductor_quality.py).
+Examples: [synthetic spectra](examples/hyperspectral_gra_pca.py),
+[held-out manufacturing lots](examples/semiconductor_quality.py),
+[AdvPCA quality prediction](examples/semiconductor_adv_quality.py).
+Converting XRF peak amplitudes to concentrations requires instrument, standard-sample, and matrix calibration.
 
 ## Batch execution
 
+Reuse a model with different data. `ModelQueue` saves a deep copy when each entry is added:
+
 ```python
-from greytheory import GM0N, GM11, ModelQueue
+from greytheory import GM11, ModelQueue
 
 if __name__ == "__main__":
     queue = ModelQueue()
     model = GM11(background_mode="corrected")
     for series in ([2, 3, 4, 5, 6], [3, 4, 6, 8, 11]):
-        model.set_data(series)
-        queue.append(model)  # Saves a deep copy at this point.
-
-    queue.append(GM0N().set_data([[1], [2], [3], [4]], [2, 4, 7, 8]))
+        queue.append(model.set_data(series))
     results = queue.run(workers=2)
-    print([m.predict(2) for m in results[:2]])
-    print(results[2].influence_degrees)
+    print([item.predict(2) for item in results])
 ```
 
-`ModelQueue` deep-copies models on construction, `append`, `extend`, `insert`,
-and item or slice assignment. You can reuse one model for several datasets;
-each entry keeps the data and settings present when it was added. Reading an
-entry returns its stored model, which you can edit. A plain Python list retains
-its normal reference behavior.
+`queue.run()` is sequential by default. Set `workers=2` for two processes; results keep input order.
+You can mix GM0N, GM1N, and GM11. For an existing model list, use `run_models(models, workers=2)`.
+Keep the `if __name__ == "__main__":` guard when using processes.
 
-`queue.run()` chooses the computation for each model, so GM(0,N), GM(1,N), and
-GM(1,1) can share a batch. It is sequential by default; set `workers` to use
-processes. Results retain input order and update the queued models only after
-all jobs succeed. `inplace=False` returns fitted copies and leaves the queue
-unchanged. `run_models(models, workers=2)` offers the same execution for an
-existing iterable. Keep the main guard for process execution on Windows and macOS.
+<details>
+<summary>Queue copying and updates</summary>
 
-## Development
+Construction, insertion, and replacement deep-copy models. Reading `queue[0]` returns the stored model,
+which can be edited. The queue updates only after all jobs succeed.
+Use `inplace=False` to return fitted copies without changing the queue.
+
+</details>
+
+## Development and tests
 
 ```bash
 python -m pip install -e . -r requirements-dev.txt
@@ -548,33 +493,22 @@ python -m pytest -q
 python -m build
 ```
 
-Tests cover the original examples, numerical edge cases, decomposition objectives,
-multidimensional features, and readers. All test inputs are generated locally or
-included as numerical fixtures; no external download is needed.
-`scripts/verify_full_install.py` exercises the APIs from an installed wheel.
+Test inputs are generated or included in the repository; no dataset download is needed.
+`scripts/verify_full_install.py` checks the installed APIs. Examples use synthetic data to demonstrate
+the workflow, not establish process, chemical, or forensic accuracy.
 
-Synthetic benchmark records are in [benchmarks/results](benchmarks/results/).
-The [core benchmark](benchmarks/compare_core.py) generates its input from a fixed
-seed; its optional `--baseline` takes a separate original checkout for comparison.
-The [decomposition benchmark](benchmarks/compare_decomposition.py) generates clean
-and contaminated data, then compares held-out reconstruction on the same split.
-The recorded timings are from macOS arm64 and depend on the machine and runtime;
-the scores describe these synthetic cases.
-
-The older `GreyTheory` facade, `GreyGM*` names, `add_pattern`/`add_patterns`,
-and `grey.run.gm*` entry points remain available. New code can import `GM0N`,
-`GM1N`, `GM11`, `ModelQueue`, and `run_models` directly.
+Benchmark records are in [benchmarks/results](benchmarks/results/).
+Rerun the [core benchmark](benchmarks/compare_core.py) or [decomposition comparison](benchmarks/compare_decomposition.py).
+Recorded timings are from macOS arm64 and depend on the environment.
+The older `GreyTheory`, `GreyGM*`, `add_pattern`/`add_patterns`, and `grey.run.gm*` APIs remain available.
 
 ## License
 
-GreyTheory is released under the [MIT License](LICENSE).
-Runtime dependencies are installed separately and retain their own licenses;
-see [Third-party notices](THIRD_PARTY_NOTICES.md).
+[MIT](LICENSE). Dependencies retain their own licenses; see [Third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## References
 
-The references below distinguish the implemented methods, upstream implementations,
-and related research. SCRAMBLE is included as background rather than a supplied estimator.
+Algorithms, upstream tools, and further reading. SCRAMBLE is related research, not an included implementation.
 
 1. Deng, J. L. (1982). [Control problems of grey systems](https://doi.org/10.1016/S0167-6911(82)80025-X). *Systems & Control Letters*, 1(5), 288–294.
 2. Liu, S. & Lin, Y. (2011). [Grey Systems: Theory and Applications](https://doi.org/10.1007/978-3-642-16158-2). Springer. Grey modelling and relational analysis.
