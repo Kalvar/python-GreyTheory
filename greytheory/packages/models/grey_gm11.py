@@ -1,145 +1,179 @@
-#!/usr/bin/python 
-# -*- coding: utf-8 -*-
+"""GM(1,1), including the original two-level sliding-window method."""
 
-from .grey_class import *
-import math
+import numpy as np
 
-class GreyGM11 (GreyClass):
+from ..._validation import array, integer, scalar
+from .grey_class import GreyClass
+from .grey_forecast import GreyForecast
 
-    def __init__(self):
-        super(GreyGM11, self).__init__() # Calling super object __init__
+
+def forecast_values(x1, a, b, k):
+    """k=1 is the second observation. Analytic limit at a=0 is b."""
+    a = scalar(a, "a")
+    b = scalar(b, "b")
+    k = np.asarray(k, dtype=float)
+    try:
+        with np.errstate(over="raise", invalid="raise", divide="raise"):
+            ratio = 1 + a / 2 + a * a / 6 + a**3 / 24 if abs(a) < 1e-5 else np.expm1(a) / a
+            result = (-np.expm1(a) * x1 + b * ratio) * np.exp(-a * k)
+    except FloatingPointError as exc:
+        raise ValueError("GM11 forecast overflow; shorten horizon or rescale input") from exc
+    if not np.isfinite(result).all():
+        raise ValueError("GM11 produced a nonfinite forecast")
+    return result
+
+
+class GreyGM11(GreyClass):
+    def __init__(self, *, horizon=1, window_size=None, stride=1, correction_mode="legacy", **kwargs):
+        super().__init__(**kwargs)
         self.forecasted_outputs = []
-        self.stride      = 1
-        self.length      = 4
-        self.period      = 1 # Default is 1, the parameter means how many next moments need to forcast continually.
+        self._continuation = []
+        self.stride = integer(stride, "stride")
+        self.length = 4
+        self.period = integer(horizon, "horizon", minimum=0)
         self.convolution = False
-    
-    def add_pattern(self, pattern, pattern_key):
-        self._add_patterns(pattern, pattern_key)
+        self.window_size = window_size
+        if correction_mode not in {"legacy", "none"}:
+            raise ValueError("correction_mode must be legacy or none")
+        self.correction_mode = correction_mode
 
-    def __forecast_value(self, x1, a_value, b_value, k):
-        return (1 - math.exp(a_value)) * (x1 - (b_value / a_value)) * math.exp(-a_value * k)
-    
-    def __forecast(self, patterns, period=1):
-        self.remove_all_analysis()
-        ago     = self.ago([patterns])
-        z_boxes = ago[1]
-        # Building B matrix, manual transpose z_boxes and add 1.0 to every sub-object.
-        factors = []
-        for z in z_boxes:
-            x_t = []
-            # Add negative z
-            x_t.append(-z)
-            x_t.append(1.0)
-            factors.append(x_t)
-        
-        # Building Y matrix to be output-goals of equations.
-        y_vectors = []
-        for passed_number in patterns[1::]:
-            y_vectors.append(passed_number)
-        
-        solved_equations = self.grey_math.solve_equations(factors, y_vectors)
-        # Then, forecasting them at all include next moment value.
-        analyzed_results = []
-        sum_error = 0.0
-        x1        = patterns[0]
-        a_value   = solved_equations[0]
-        b_value   = solved_equations[1]
-        k         = 1
-        length    = len(patterns)
-        for passed_number in patterns[1::]:
-            grey_forecast  = GreyForecast()
-            forecast_value = self.__forecast_value(x1, a_value, b_value, k)
+    @property
+    def horizon(self):
+        return self.period
 
-            original_value  = patterns[k]
-            error_rate      = abs((original_value - forecast_value) / original_value)
-            sum_error      += error_rate
-            grey_forecast.tag = self._TAG_FORECAST_HISTORY
-            grey_forecast.k   = k
-            grey_forecast.original_value = original_value
-            grey_forecast.forecast_value = forecast_value
-            grey_forecast.error_rate     = error_rate
+    @horizon.setter
+    def horizon(self, value):
+        self.period = integer(value, "horizon", minimum=0)
 
-            analyzed_results.append(grey_forecast)
-            k += 1
-        
-        # Continuous forecasting next moments.
-        if period > 0:
-            for go_head in range(0, period):
-                forecast_value = self.__forecast_value(x1, a_value, b_value, k)
+    @property
+    def window_size(self):
+        return self.length if self.convolution else None
 
-                grey_forecast     = GreyForecast()
-                grey_forecast.tag = self._TAG_FORECAST_NEXT_MOMENT
-                grey_forecast.k   = k # This k means the next moment of forecasted.
-                grey_forecast.average_error_rate = sum_error / (length - 1)
-                grey_forecast.forecast_value     = forecast_value
-                analyzed_results.append(grey_forecast)
-                k += 1
-
-        self.analyzed_results = analyzed_results
-        return analyzed_results
-
-    # stride: the N-gram, shift step-size for each forecasting.
-    # length: the Filter kernel, shift length of distance for each forecasting.
-    def __forecast_convolution(self, patterns=[], stride=1, length=4):
-        pattern_count = len(patterns)
-        # Convolution formula: (pattern_count - length) / stride + 1, 
-        # e.g. (7 - 3) / 1 + 1 = 5 (Needs to shift 5 times.)
-        # e.g. (7 - 3) / 3 + 1 = 2.33, to get floor() or ceil()
-        # total_times at least for once.
-        total_times  = int(math.floor(float(pattern_count - length) / stride + 1))
-        convolutions = []
-        stride_index = 0
-        for i in range(0, total_times):
-            # If it is last convolution, we directly pick it all.
-            stride_length = stride_index+length
-            if i == total_times - 1:
-                stride_length = len(patterns)
-
-            convolution_patterns = patterns[stride_index:stride_length]
-            period_forecasts     = self.__forecast(convolution_patterns)
-            convolutions.append(period_forecasts)
-
-            # Fetchs forecasted moment and revises it to be fix with average error rate.
-            forecasted_moment    = period_forecasts[-1]
-            forecasted_value     = forecasted_moment.forecast_value
-            revised_value        = forecasted_value + (forecasted_value * forecasted_moment.average_error_rate)
-            self.forecasted_outputs.append(revised_value)
-
-            # Next stride start index.
-            stride_index += stride
-        
-        #print "forecasted_outputs % r" % self.forecasted_outputs
-
-        # Using extracted convolution that forecasted values to do final forecasting.
-        if total_times > 1:
-            self.__forecast(self.forecasted_outputs)
-            self.forecasted_outputs.append(self.last_moment)
-        
-        return convolutions
-    
-    # period: 連續預測多長的時間區間, default: 只預測下一刻
-    def forecast(self):
-        if self.convolution == True:
-            return self.__forecast_convolution(self.patterns, self.stride, self.length)
+    @window_size.setter
+    def window_size(self, value):
+        if value is None:
+            self.convolution = False
         else:
-            return self.__forecast(self.patterns, self.period)
+            self.length = integer(value, "window_size", minimum=3)
+            self.convolution = True
 
-    # In next iteration of forecasting, we wanna continue use last forecasted results to do next forecasting, 
-    # but if we removed gm11.forecasted_outputs list before,  
-    # we can use continue_forecasting() to extend / recall the last forecasted result come back to be convolutional features. 
-    def continue_forecasting(self, last_forecasted_outputs = []):
-        self.forecasted_outputs.extend(last_forecasted_outputs)
-    
-    # Clean forecasted outputs.
+    def add_pattern(self, pattern, pattern_key):
+        self._add_patterns(scalar(pattern, "pattern"), pattern_key)
+
+    def _forecast(self, patterns, period):
+        values = array(patterns, name="series", ndim=1, min_rows=3)
+        self.remove_all_analysis()
+        _, background = self._ago_arrays([values])
+        a, b = self._solve(
+            np.column_stack((-background, np.ones(values.size - 1))),
+            values[1:],
+            penalty_weights=[1, 0],
+        )
+        predicted = forecast_values(values[0], a, b, np.arange(1, values.size + period))
+        residual = values[1:] - predicted[: values.size - 1]
+        valid = values[1:] != 0
+        errors = np.abs(residual[valid] / values[1:][valid])
+        average = float(errors.mean()) if errors.size else None
+        self.metrics_ = dict(
+            mae=float(np.mean(np.abs(residual))),
+            rmse=float(np.sqrt(np.mean(residual**2))),
+            mape=average,
+            percentage_error_count=int(valid.sum()),
+        )
+        results = []
+        for k, value in enumerate(predicted, 1):
+            historical = k < values.size
+            original = float(values[k]) if historical else 0.0
+            error = float(abs((original - value) / original)) if historical and original != 0 else None
+            results.append(
+                GreyForecast(
+                    self._TAG_FORECAST_HISTORY if historical else self._TAG_FORECAST_NEXT_MOMENT,
+                    k,
+                    original,
+                    float(value),
+                    error,
+                    average,
+                )
+            )
+        self.analyzed_results = results
+        return results
+
+    def forecast(self):
+        period = integer(self.period, "period", minimum=0)
+        values = array(self.patterns, name="series", ndim=1, min_rows=3)
+        if not self.convolution:
+            return self._forecast(values, period)
+        stride = integer(self.stride, "stride")
+        length = integer(self.length, "length", minimum=3, maximum=values.size)
+        if self.correction_mode not in {"legacy", "none"}:
+            raise ValueError("correction_mode must be legacy or none")
+        self.forecasted_outputs = list(self._continuation)
+        starts = list(range(0, values.size - length + 1, stride))
+        windows = []
+        for i, start in enumerate(starts):
+            # Preserve the historical final-window tail policy.
+            stop = values.size if i == len(starts) - 1 else start + length
+            result = self._forecast(values[start:stop], 1)
+            windows.append(result)
+            value = result[-1].forecast_value
+            if self.correction_mode == "legacy":
+                value *= 1 + (result[-1].average_error_rate or 0)
+            self.forecasted_outputs.append(value)
+        if len(self.forecasted_outputs) >= 3:
+            self._forecast(self.forecasted_outputs, period)
+            if period:
+                self.forecasted_outputs.append(self.last_moment)
+        elif len(starts) > 1:
+            raise ValueError("second-level GM11 requires at least three window predictions")
+        elif period != 1:
+            self._forecast(values, period)
+        return windows
+
+    def set_data(self, series):
+        """Store a private copy of a series without fitting it."""
+        values = array(series, name="series", ndim=1, min_rows=3)
+        self.reset(clear_data=True)
+        for i, value in enumerate(values):
+            self.add_pattern(value, f"t{i}")
+        return self
+
+    def fit(self, series):
+        self.set_data(series)
+        self.forecast()
+        return self
+
+    def predict(self, steps=1):
+        steps = integer(steps, "steps", minimum=0)
+        if not hasattr(self, "coefficients_"):
+            raise ValueError("fit or forecast must be called before predict")
+        a, b = self.coefficients_
+        if self.convolution:
+            # Reuse the complete two-level forecast, including its tail policy,
+            # without changing the fitted model's horizon or results.
+            if steps == 0:
+                return np.empty(0)
+            model = self.deepcopy()
+            model.horizon = steps
+            model.forecast()
+            return np.array([
+                result.forecast_value for result in model.analyzed_results
+                if result.tag == self._TAG_FORECAST_NEXT_MOMENT
+            ])
+        return forecast_values(
+            self.patterns[0], a, b, np.arange(len(self.patterns), len(self.patterns) + steps)
+        )
+
+    def continue_forecasting(self, last_forecasted_outputs=None):
+        if last_forecasted_outputs is not None:
+            values = array(last_forecasted_outputs, name="last_forecasted_outputs", ndim=1)
+            self._continuation.extend(values.tolist())
+
     def clean_forecasted(self):
         self.forecasted_outputs = []
-        
+        self._continuation = []
+
     @property
     def last_moment(self):
-        # Last GreyForecast() object is the next moment forecasted.
+        if not self.analyzed_results:
+            raise ValueError("forecast must be called first")
         return self.analyzed_results[-1].forecast_value
-
-
-
-    

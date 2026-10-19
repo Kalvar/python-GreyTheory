@@ -1,0 +1,182 @@
+[
+  {
+    "n": 20,
+    "p": 3,
+    "median_seconds": 0.000122792087495327,
+    "python_peak_bytes": 15467,
+    "process_peak_rss_bytes": 38780928,
+    "status": "PASS",
+    "rank": 3,
+    "implementation": "current"
+  },
+  {
+    "n": 20,
+    "p": 10,
+    "median_seconds": 0.0001759580336511135,
+    "python_peak_bytes": 23541,
+    "process_peak_rss_bytes": 38813696,
+    "status": "PASS",
+    "rank": 10,
+    "implementation": "current"
+  },
+  {
+    "n": 20,
+    "p": 100,
+    "median_seconds": 0.000650541391223669,
+    "python_peak_bytes": 79499,
+    "process_peak_rss_bytes": 38830080,
+    "status": "PASS",
+    "rank": 19,
+    "implementation": "current"
+  },
+  {
+    "n": 100,
+    "p": 3,
+    "median_seconds": 0.00012062489986419678,
+    "python_peak_bytes": 23787,
+    "process_peak_rss_bytes": 38600704,
+    "status": "PASS",
+    "rank": 3,
+    "implementation": "current"
+  },
+  {
+    "n": 100,
+    "p": 10,
+    "median_seconds": 0.00017908401787281036,
+    "python_peak_bytes": 45403,
+    "process_peak_rss_bytes": 38813696,
+    "status": "PASS",
+    "rank": 10,
+    "implementation": "current"
+  },
+  {
+    "n": 100,
+    "p": 100,
+    "median_seconds": 0.0013985000550746918,
+    "python_peak_bytes": 334771,
+    "process_peak_rss_bytes": 39174144,
+    "status": "PASS",
+    "rank": 99,
+    "implementation": "current"
+  },
+  {
+    "n": 1000,
+    "p": 3,
+    "median_seconds": 0.00024466728791594505,
+    "python_peak_bytes": 117451,
+    "process_peak_rss_bytes": 38993920,
+    "status": "PASS",
+    "rank": 3,
+    "implementation": "current"
+  },
+  {
+    "n": 1000,
+    "p": 10,
+    "median_seconds": 0.00044445786625146866,
+    "python_peak_bytes": 290267,
+    "process_peak_rss_bytes": 39288832,
+    "status": "PASS",
+    "rank": 10,
+    "implementation": "current"
+  },
+  {
+    "n": 1000,
+    "p": 100,
+    "median_seconds": 0.005037374794483185,
+    "python_peak_bytes": 2524411,
+    "process_peak_rss_bytes": 46497792,
+    "status": "PASS",
+    "rank": 100,
+    "implementation": "current"
+  },
+  {
+    "n": 20,
+    "p": 3,
+    "median_seconds": 8.783303201198578e-05,
+    "python_peak_bytes": 11736,
+    "process_peak_rss_bytes": 37191680,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 20,
+    "p": 10,
+    "median_seconds": 0.00021141720935702324,
+    "python_peak_bytes": 28784,
+    "process_peak_rss_bytes": 37109760,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 20,
+    "p": 100,
+    "median_seconds": 0.0017915419302880764,
+    "python_peak_bytes": 373488,
+    "process_peak_rss_bytes": 37912576,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 100,
+    "p": 3,
+    "median_seconds": 0.00039570778608322144,
+    "python_peak_bytes": 52328,
+    "process_peak_rss_bytes": 37289984,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 100,
+    "p": 10,
+    "median_seconds": 0.0009334590286016464,
+    "python_peak_bytes": 131944,
+    "process_peak_rss_bytes": 37601280,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 100,
+    "p": 100,
+    "median_seconds": 0.007367666810750961,
+    "python_peak_bytes": 1229880,
+    "process_peak_rss_bytes": 41041920,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 1000,
+    "p": 3,
+    "median_seconds": 0.004944874905049801,
+    "python_peak_bytes": 509720,
+    "process_peak_rss_bytes": 38961152,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 1000,
+    "p": 10,
+    "median_seconds": 0.011218457948416471,
+    "python_peak_bytes": 1299976,
+    "process_peak_rss_bytes": 42663936,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  },
+  {
+    "n": 1000,
+    "p": 100,
+    "median_seconds": 0.09251454239711165,
+    "python_peak_bytes": 11507352,
+    "process_peak_rss_bytes": 87097344,
+    "status": "PASS",
+    "rank": null,
+    "implementation": "baseline"
+  }
+]

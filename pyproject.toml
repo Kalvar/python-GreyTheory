@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greytheory"
+version = "2.0.0a1"
+description = "Grey models, relational analysis and scientific data analysis core"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+authors = [{name = "Kuo-Ming Lin (Kalvar)"}]
+dependencies = [
+  "numpy>=1.26,<3", "scipy>=1.12,<2", "scikit-learn>=1.4,<2",
+  "pyMCR>=0.5.1,<0.6", "spectral>=0.24,<0.26",
+  "pybaselines>=1.2,<2", "xraylib>=4.2,<5", "defusedxml>=0.7.1,<1",
+]
+
+[project.urls]
+Repository = "https://github.com/Kalvar/python-GreyTheory"
+
+[tool.setuptools.packages.find]
+include = ["greytheory*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+exclude = ["test_data", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

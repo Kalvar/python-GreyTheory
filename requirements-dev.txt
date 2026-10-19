@@ -1,0 +1,7 @@
+pytest>=8
+ruff>=0.9
+build>=1.2
+wheel>=0.45
+cvxpy>=1.6
+cyclonedx-bom>=5
+pip-audit>=2.8

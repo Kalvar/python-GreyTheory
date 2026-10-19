@@ -1,48 +1,59 @@
-from .grey_class import *
+import numpy as np
 
-class GreyGM0N (GreyClass):
+from ..._validation import array
+from .grey_class import GreyClass
+from .grey_factory import GreyFactory
+
+
+class GreyGM0N(GreyClass):
+    def set_data(self, X, y, *, feature_names=None, target_name="target"):
+        """Store observations-by-factors X and target y without fitting.
+
+        Inputs are copied. Invalid data leave the previous model unchanged.
+        """
+        X = array(X, name="X", min_rows=2)
+        y = array(y, name="y", ndim=1, min_rows=2)
+        if X.shape[0] != y.size:
+            raise ValueError("X and y must have the same observation count")
+        if isinstance(feature_names, str):
+            raise TypeError("feature_names must be a sequence of names, not a string")
+        names = list(feature_names) if feature_names is not None else [f"x{i}" for i in range(X.shape[1])]
+        if len(names) != X.shape[1]:
+            raise ValueError("feature_names must contain one name per factor")
+        keys = [target_name, *names]
+        if any(not isinstance(name, str) or not name.strip() for name in keys):
+            raise ValueError("target_name and feature_names must be nonempty strings")
+        if len(set(keys)) != len(keys):
+            raise ValueError("target_name and feature_names must be distinct")
+        self.reset(clear_data=True)
+        self.patterns = [y.tolist(), *X.T.tolist()]
+        self.keys = keys
+        self._has_output = True
+        return self
+
+    def fit(self, X, y, *, feature_names=None, target_name="target"):
+        """Fit factor coefficients; X has shape (observations, factors)."""
+        self.set_data(X, y, feature_names=feature_names, target_name=target_name)
+        self.analyze()
+        return self
 
     def add_outputs(self, outputs, pattern_key):
         self._add_outputs(outputs, pattern_key)
-    
+
     def add_patterns(self, patterns, pattern_key):
         self._add_patterns(patterns, pattern_key)
 
     def analyze(self):
         self.remove_all_analysis()
-        
-        ago       = self.ago(self.patterns)
-        ago_boxes = ago[0]
-        z_boxes   = ago[1] # X
-
-        # Fetchs ago matrixes after x2[1] (ago_boxes[1]) then transpose them.
-        factors = np.asarray(ago_boxes[1:len(ago_boxes)]).T.tolist()
-        grey_equations = factors[1:len(factors)] # Y
-
-        # all_factors are the equations (x, y, z ...) and z_boxes are the goals of equations.
-        solved_equations = self.grey_math.solve_equations(grey_equations, z_boxes) # B
-        
-        # Desc sorting the abs() equation values
-        sorts = []
-        length = len(solved_equations)
-        for i in range(0, length):
-            equation_value = abs(solved_equations[i])
-            factory_info   = {}
-            equation_name  = self.keys[i+1] # The keys of patterns are start in index 1, the index 0 is key of output-goal.
-            grey_factory                = GreyFactory()
-            grey_factory.name           = equation_name
-            grey_factory.equation_value = equation_value
-            sorts.append(grey_factory)
-
-        # DESC
-        # key=lambda d: d["equation_value"]
-        self.analyzed_results = sorted(sorts, key=lambda factory: factory.equation_value, reverse=True)
-        # Ranking all grey factories and setup their influence degrees step by step.
-        ranking = 0
-        for grey_factory in self.analyzed_results:
-            ranking += 1
-            grey_factory.ranking = ranking
-            self.influence_degrees.append(grey_factory.name)
-            #print "gm0n %r" % grey_factory.name
-        
-
+        values = self._multivariate_data()
+        accumulated, background = self._ago_arrays(values)
+        B = accumulated[1:, 1:].T
+        beta = self._solve(B, background)
+        order = np.argsort(-np.abs(beta), kind="stable")
+        self.rank_ = np.empty(beta.size, dtype=int)
+        self.rank_[order] = np.arange(1, beta.size + 1)
+        self.analyzed_results = [
+            GreyFactory(self.keys[i + 1], float(abs(beta[i])), rank, float(beta[i]))
+            for rank, i in enumerate(order, 1)
+        ]
+        self.influence_degrees = [result.name for result in self.analyzed_results]

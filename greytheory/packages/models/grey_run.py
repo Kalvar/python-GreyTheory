@@ -1,50 +1,31 @@
+"""Compatibility entry points for model batch execution."""
+
 import multiprocessing as mp
-import math
+
+from ...batch import _run_models, run_models
+
 
 class GreyRun:
-    
-    def __init__(self):
-        mp.freeze_support() # for windows
+    def __init__(self, workers=1):
         self.cpu_count = mp.cpu_count()
+        self.workers = workers
 
-    def _is_empty(self, array = []):
-        return not bool(array)
+    def __call__(self, models, *, workers=None, inplace=True):
+        return run_models(models, workers=self.workers if workers is None else workers, inplace=inplace)
 
-    def _close_pool(self, pool):
-        pool.close()
-        pool.join()
+    def _execute_models(self, gmnn_queue=None, is_gm11=False, *, workers=None, inplace=True):
+        return _run_models(
+            () if gmnn_queue is None else gmnn_queue,
+            workers=self.workers if workers is None else workers,
+            inplace=inplace,
+            method="forecast" if is_gm11 else "analyze",
+        )
 
-    # multiprocessing
-    def _execute_models(self, gmnn_queue=[], is_gm11=False): 
-        if self._is_empty(gmnn_queue):
-            return []
-        pool        = mp.Pool()
-        cpu_count   = self.cpu_count
-        length      = len(gmnn_queue)
-        block_count = int(math.ceil(length / float(cpu_count)))
-        start_index = 0
-        end_length  = cpu_count
-        for block in xrange(0, block_count):
-            for gm_model in gmnn_queue[start_index:end_length]:
-                if is_gm11 == False:
-                    pool.apply_async(gm_model.analyze())
-                else:
-                    pool.apply_async(gm_model.forecast())
-                
-            start_index += cpu_count
-            end_length  += cpu_count
-            if end_length > length:
-                end_length = length
+    def gm0n(self, queue, **kwargs):
+        return self._execute_models(queue, **kwargs)
 
-        self._close_pool(pool)
-        return gmnn_queue
+    def gm1n(self, queue, **kwargs):
+        return self._execute_models(queue, **kwargs)
 
-    def gm0n(self, queue):
-        return self._execute_models(queue)
-
-    def gm1n(self, queue):
-        return self._execute_models(queue)
-
-    def gm11(self, queue):
-        return self._execute_models(queue, True)
-
+    def gm11(self, queue, **kwargs):
+        return self._execute_models(queue, True, **kwargs)

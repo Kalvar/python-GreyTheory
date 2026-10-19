@@ -1,14 +1,42 @@
-# -*- coding: utf-8 -*-
+"""Grey models and batch snapshots. Scientific adapters load on demand."""
+
 from .packages.models.grey_gm0n import GreyGM0N
 from .packages.models.grey_gm1n import GreyGM1N
 from .packages.models.grey_gm11 import GreyGM11
+from .batch import ModelQueue, run_models
 from .packages.models.grey_run import GreyRun
 
-__version__ = "0.1"
+__version__ = "2.0.0a1"
+GM0N = GreyGM0N
+GM1N = GreyGM1N
+GM11 = GreyGM11
+
+__all__ = [
+    "GM0N", "GM1N", "GM11", "ModelQueue", "run_models",
+    "GreyTheory", "GreyGRA", "GreyGM0N", "GreyGM1N", "GreyGM11", "GreyRun",
+]
+
 
 class GreyTheory:
     def __init__(self):
         self.gm0n = GreyGM0N()
         self.gm1n = GreyGM1N()
         self.gm11 = GreyGM11()
-        self.run  = GreyRun()
+        self.run = GreyRun()
+        self._gra = None
+
+    @property
+    def gra(self):
+        if self._gra is None:
+            from .analysis.gra import GreyGRA
+
+            self._gra = GreyGRA()
+        return self._gra
+
+
+def __getattr__(name):
+    if name == "GreyGRA":
+        from .analysis.gra import GreyGRA
+
+        return GreyGRA
+    raise AttributeError(name)
