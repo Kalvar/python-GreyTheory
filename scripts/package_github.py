@@ -10,8 +10,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 ROOT_FILES = (
     ".gitignore", "LICENSE", "MANIFEST.in", "README.md", "README.zh-TW.md", "README.ja.md",
     "THIRD_PARTY_NOTICES.md", "pyproject.toml", "requirements-dev.txt", "setup.py", "run.py", "example.py",
-    ".github/workflows/ci.yml", ".github/workflows/publish.yml",
-    "scripts/_synthetic.py", "scripts/verify_full_install.py", "scripts/package_github.py",
+    ".github/workflows/ci.yml", ".github/workflows/publish.yml", ".github/workflows/verify.yml",
+    "scripts/_synthetic.py", "scripts/verify_full_install.py", "scripts/package_github.py", "scripts/check_release.py",
     "tests/fixtures/legacy_golden.json",
     "greytheory/demos/assets/handwriting_ai_sheet.png", "greytheory/demos/assets/handwriting_ai_sheet.json",
 )

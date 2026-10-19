@@ -172,12 +172,15 @@ def test_scaled_trajectory_uses_normalized_distance_and_rejects_changed_schema()
 
 
 def test_trajectory_window_pca_regression_is_a_cloneable_training_only_pipeline():
-    times = np.linspace(0, 1, 10)
-    scales = np.linspace(0.5, 3, 32)
-    paths = [Trajectory(np.column_stack((s * times, 0.3 * s * times)), timestamps=times) for s in scales]
+    # Dyadic, axis-aligned paths have exactly zero turning angles. Oblique
+    # straight lines can produce arccos roundoff that standardization amplifies,
+    # making this test measure BLAS-dependent noise instead of scale prediction.
+    times = np.arange(9) / 8
+    scales = np.arange(4, 36) / 8
+    paths = [Trajectory(np.column_stack((s * times, np.zeros_like(times))), timestamps=times) for s in scales]
     supplied = Pipeline(
         [
-            ("trajectory", TrajectoryFeatures(16, include_time=True)),
+            ("trajectory", TrajectoryFeatures(17, include_time=True)),
             ("windows", GreyWindowFeatures(8, stride=4, boundary_channel=-1)),
             ("reducer", GreyPCA(1, top_k=1, standardize=True)),
             ("model", Ridge(alpha=1)),

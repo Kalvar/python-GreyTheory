@@ -5,8 +5,9 @@ from .packages.models.grey_gm1n import GreyGM1N
 from .packages.models.grey_gm11 import GreyGM11
 from .batch import ModelQueue, run_models
 from .packages.models.grey_run import GreyRun
+from ._version import get_version as _get_version
 
-__version__ = "2.0.0a1"
+__version__ = _get_version()
 GM0N = GreyGM0N
 GM1N = GreyGM1N
 GM11 = GreyGM11

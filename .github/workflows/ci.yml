@@ -1,31 +1,10 @@
 name: core-and-full-install
-on: [push, pull_request]
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
 jobs:
   verify:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python: ['3.11', '3.12']
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python }}
-      - run: python -m pip install build
-      - run: python -m build
-      - name: Install wheel and complete runtime dependencies
-        shell: bash
-        run: python -m pip install dist/*.whl
-      - run: python -m pip check
-      - run: python scripts/verify_full_install.py
-      - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pytest -q
-      - run: python -m ruff check greytheory tests scripts examples benchmarks setup.py example.py run.py
-      - run: python example.py
-      - name: Store build
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheel-${{ matrix.os }}-${{ matrix.python }}
-          path: dist/*
+    uses: ./.github/workflows/verify.yml

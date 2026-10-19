@@ -17,4 +17,5 @@ prune test_data
 prune tests/fixtures/external
 prune artifacts
 prune .local
+prune test-results
 global-exclude *.pyc .DS_Store

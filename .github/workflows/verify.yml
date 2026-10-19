@@ -1,0 +1,79 @@
+name: Verify package on supported platforms
+
+on:
+  workflow_call:
+    inputs:
+      release-tag:
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      RELEASE_TAG: ${{ inputs.release-tag }}
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      LOKY_MAX_CPU_COUNT: "2"
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Check release version
+        run: python scripts/check_release.py
+      - name: Install build tools
+        run: python -m pip install --upgrade build twine
+      - name: Build wheel and sdist
+        run: python -m build
+      - name: Check metadata and README
+        run: |
+          python scripts/check_release.py --dist dist
+          python -m twine check --strict dist/*
+      - name: Install wheel and test dependencies
+        run: |
+          python -m pip install dist/*.whl
+          python -m pip install -r requirements-dev.txt
+          python -m pip check
+      - name: Check installed version and APIs
+        run: |
+          python scripts/check_release.py --installed
+          python scripts/verify_full_install.py
+      - name: Run complete test suite
+        run: python -m pytest -q --junitxml=test-results/pytest.xml
+      - name: Check source style and run example
+        run: |
+          python -m ruff check greytheory tests scripts examples benchmarks setup.py example.py run.py
+          python example.py
+      - name: Store pytest results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: pytest-${{ matrix.os }}-py${{ matrix.python }}
+          path: test-results/pytest.xml
+          if-no-files-found: ignore
+      - name: Store verified distributions
+        uses: actions/upload-artifact@v5
+        with:
+          name: distributions-${{ matrix.os }}-py${{ matrix.python }}
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error

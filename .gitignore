@@ -26,6 +26,7 @@ __pycache__/
 .coverage.*
 htmlcov/
 coverage.xml
+test-results/
 
 # Local editor settings and credentials
 .vscode/
