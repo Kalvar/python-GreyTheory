@@ -15,6 +15,7 @@ Forecast a short sequence, rank features against a target, or explore spectra an
 
 ## What you can do
 
+- **Combine Grey + PCA:** `GreyPCA` brings six PCA backends together with GRA component selection. PCA summarizes sample differences; with a reference target, GRA scores and selects related components. For spectra, images, and paths, add Grey-window features before PCA to include local patterns.
 - **Forecast:** GM11 and two-level Convolution; GM0N / GM1N for ordered multivariate data.
 - **Compare:** GRA feature ranking and mixed larger / smaller / target quality preferences.
 - **Explore:** six PCA backends, raw-count PoissonPCA, Grey windows, images, and multidimensional paths.
