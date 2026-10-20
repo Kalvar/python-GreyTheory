@@ -1,15 +1,15 @@
 # GreyTheory
 
-[English](README.md) | [繁體中文](README.zh-TW.md) | **日本語**
+[English](https://github.com/Kalvar/python-GreyTheory/blob/master/README.md) | [繁體中文](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md) | **日本語**
 
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3977ab)](pyproject.toml)
-[![MIT License](https://img.shields.io/badge/License-MIT-36a88a)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3977ab)](https://github.com/Kalvar/python-GreyTheory/blob/master/pyproject.toml)
+[![MIT License](https://img.shields.io/badge/License-MIT-36a88a)](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE)
 [![CI](https://github.com/Kalvar/python-GreyTheory/actions/workflows/ci.yml/badge.svg)](https://github.com/Kalvar/python-GreyTheory/actions/workflows/ci.yml)
 
-![GreyTheory — Grey models, GRA, and PCA](docs/images/greytheory-banner.svg)
+![GreyTheory — Grey models, GRA, and PCA](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/greytheory-banner.svg)
 
 <p align="center"><strong>Python で灰色予測・特徴比較・PCA を使う。</strong></p>
-<p align="center"><a href="docs/README.ja.md">Documentation</a> · <a href="#quick-start">クイックスタート</a> · <a href="docs/README.ja.md#workbench">操作画面</a> · <a href="benchmarks/results/">ベンチマーク</a></p>
+<p align="center"><a href="https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md">Documentation</a> · <a href="#quick-start">クイックスタート</a> · <a href="https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md#workbench">操作画面</a> · <a href="https://github.com/Kalvar/python-GreyTheory/tree/master/benchmarks/results/">ベンチマーク</a></p>
 
 時系列を予測し、目標と関連する特徴を比較し、光スペクトルや工程データを整理できます。Python から使うか、付属の HTML 画面で試せます。
 
@@ -72,7 +72,7 @@ print(components)
 | `"robust_sparse"` | 頑健性と疎な符号化を組み合わせる。 |
 | `"adv"` | 指定した摂動条件での投影を調べる。 |
 
-非負の元計数には PoissonPCA もあります。パラメーター、成分選択、GRA と PCA の順位の違いは詳細ガイドを参照してください。 [→ GreyPCA](docs/guide.ja.md#pca-と特徴選択)
+非負の元計数には PoissonPCA もあります。パラメーター、成分選択、GRA と PCA の順位の違いは詳細ガイドを参照してください。 [→ GreyPCA](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#pca-と特徴選択)
 
 ## 操作画面で試す
 
@@ -86,19 +86,19 @@ python3 run.py workbench
 
 付属 HTML を直接開くと、事前計算した結果の**オフラインプレビュー**を表示します。新しい設定での計算には上記コマンドか要求／結果 JSON 交換を使います。
 
-[HTML](examples/workbench/index.html) · [スクリーンショット付きの操作説明](docs/README.ja.md#workbench)
+[HTML](https://github.com/Kalvar/python-GreyTheory/blob/master/examples/workbench/index.html) · [スクリーンショット付きの操作説明](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md#workbench)
 
-![PVD DOE — GreyTheory workbench](docs/images/workbench-doe.png)
+![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)
 
 *PVD の模擬実験 15 件。左は試料差の投影、右は目標に対する工程入力の比較です。*
 
-デモの入力と結果は [data/demo/](data/demo/README.md) にまとめています。[データ選択ページ](data/demo/index.html)でファイルと操作手順を確認できます。
+デモの入力と結果は [data/demo/](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/README.md) にまとめています。[データ選択ページ](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/index.html)でファイルと操作手順を確認できます。
 
 ### その他のデモ
 
 配送、ドライバー配車、美術品の光スペクトル差、注文予測、多次元軌跡、光スペクトル・半導体ツールを試せます。画像ページは AI 筆跡や自分の画像も比較できます。
 
-[スクリーンショット付きの操作説明](docs/README.ja.md#gallery) · [PVD CSV](data/demo/doe/pvd_15.csv) · [CVD CSV](data/demo/doe/cvd_15.csv)
+[スクリーンショット付きの操作説明](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md#gallery) · [PVD CSV](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/doe/pvd_15.csv) · [CVD CSV](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/doe/cvd_15.csv)
 
 > [!NOTE]
 > デモは合成データで、実務精度を示しません。配送と配車は専用の最適化を使い、Grey は選好を評価します。画像距離は作者を特定せず、美術品の異常は調査の手掛かりです。
@@ -107,11 +107,11 @@ python3 run.py workbench
 
 | ガイド | 内容 |
 | --- | --- |
-| [スクリーンショット付きの操作説明](docs/README.ja.md) | インストール、プレビュー、即時計算、ファイル交換 |
-| [GreyPCA](docs/guide.ja.md#pca-と特徴選択) | 6 種類の PCA とパラメーター、成分選択 |
-| [Images / trajectories](docs/guide.ja.md#画像ファイルを読み込む) | 画像の読み込み、特徴、比較 |
-| [Bruker](docs/guide.ja.md#bruker-ファイルの読み込み) | SPX／BCF と検出器の校正 |
-| [使い方と API](docs/guide.ja.md) | 予測、GRA、品質、バッチ、参考文献 |
+| [スクリーンショット付きの操作説明](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md) | インストール、プレビュー、即時計算、ファイル交換 |
+| [GreyPCA](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#pca-と特徴選択) | 6 種類の PCA とパラメーター、成分選択 |
+| [Images / trajectories](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#画像ファイルを読み込む) | 画像の読み込み、特徴、比較 |
+| [Bruker](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#bruker-ファイルの読み込み) | SPX／BCF と検出器の校正 |
+| [使い方と API](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md) | 予測、GRA、品質、バッチ、参考文献 |
 
 ## 開発とテスト
 
@@ -121,18 +121,18 @@ python -m pytest -q
 python -m build
 ```
 
-[Benchmarks](benchmarks/results/) · [Issues](https://github.com/Kalvar/python-GreyTheory/issues)
+[Benchmarks](https://github.com/Kalvar/python-GreyTheory/tree/master/benchmarks/results/) · [Issues](https://github.com/Kalvar/python-GreyTheory/issues)
 
 ## ライセンス
 
-[MIT](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[MIT](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE) · [Third-party notices](https://github.com/Kalvar/python-GreyTheory/blob/master/THIRD_PARTY_NOTICES.md)
 
 ## 参考文献と実装
 
 <details>
 <summary>Grey と PCA の主要文献</summary>
 
-Grey、PCA、実装済みのロバスト手法の主要文献です。スペクトル・工程分析の出典は[詳細ガイド](docs/guide.ja.md#参考文献と実装)を参照してください。
+Grey、PCA、実装済みのロバスト手法の主要文献です。スペクトル・工程分析の出典は[詳細ガイド](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#参考文献と実装)を参照してください。
 
 1. Deng, J. L. (1982). [Control problems of grey systems](https://doi.org/10.1016/S0167-6911(82)80025-X). *Systems & Control Letters*, 1(5), 288–294.
 2. Liu, S. & Lin, Y. (2011). [Grey Systems: Theory and Applications](https://doi.org/10.1007/978-3-642-16158-2). Springer. Grey modelling and relational analysis.

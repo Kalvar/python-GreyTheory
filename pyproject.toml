@@ -26,6 +26,8 @@ demos = ["Pillow>=12,<14", "matplotlib>=3.9,<4"]
 greytheory = "greytheory.cli:main"
 
 [project.urls]
+Documentation = "https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md"
+Issues = "https://github.com/Kalvar/python-GreyTheory/issues"
 Repository = "https://github.com/Kalvar/python-GreyTheory"
 
 [tool.setuptools.packages.find]

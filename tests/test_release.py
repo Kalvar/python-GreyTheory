@@ -85,3 +85,49 @@ def test_matching_release_summary(tmp_path, monkeypatch):
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     main(["--tag", f"v{_version.get_version()}"])
     assert "Version check passed" in summary.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "[Benchmarks](benchmarks/results/)",
+        '<a href="docs/README.md#workbench">Workbench</a>',
+        "![Demo](docs/images/workbench-doe.png)",
+        "[![CI](https://example.org/ci.svg)](pyproject.toml)",
+        "[Guide][guide]\n\n[guide]: docs/guide.md",
+    ],
+)
+def test_pypi_description_rejects_repository_relative_links(description):
+    from scripts.check_release import check_readme_links
+
+    with pytest.raises(ValueError, match="relative links"):
+        check_readme_links(description)
+
+
+def test_pypi_description_accepts_absolute_urls_and_skips_code_examples():
+    from scripts.check_release import check_readme_links
+
+    check_readme_links(
+        "[Guide](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md)\n"
+        '<a href="#quick-start">Start</a>\n'
+        "![Demo](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)\n"
+        "```markdown\n[Example](local.md)\n```\n"
+        "`[inline example](local.md)`"
+    )
+
+
+@pytest.mark.parametrize("broken_artifact", ["wheel", "sdist"])
+def test_built_description_rejects_relative_links(tmp_path, broken_artifact):
+    def content(kind):
+        body = "[Workbench](docs/README.md#workbench)" if kind == broken_artifact else ""
+        return f"Name: greytheory\nVersion: 2.0.3\n\n{body}".encode()
+
+    with ZipFile(tmp_path / "greytheory-2.0.3-py3-none-any.whl", "w") as wheel:
+        wheel.writestr("greytheory-2.0.3.dist-info/METADATA", content("wheel"))
+    with tarfile.open(tmp_path / "greytheory-2.0.3.tar.gz", "w:gz") as source:
+        data = content("sdist")
+        entry = tarfile.TarInfo("greytheory-2.0.3/PKG-INFO")
+        entry.size = len(data)
+        source.addfile(entry, io.BytesIO(data))
+    with pytest.raises(ValueError, match="relative links"):
+        check_distributions(tmp_path, "2.0.3")

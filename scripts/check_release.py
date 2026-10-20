@@ -3,6 +3,7 @@
 import argparse
 from email.parser import BytesParser
 from importlib.metadata import version as installed_version
+from html.parser import HTMLParser
 import json
 import os
 from pathlib import Path
@@ -18,6 +19,41 @@ def check_tag(version, tag):
             raise ValueError(f"A stable release requires a major.minor.patch version, got {version!r}")
         if tag not in {version, f"v{version}"}:
             raise ValueError(f"Release tag {tag!r} must be {version!r} or 'v{version}'")
+
+
+def check_readme_links(text):
+    """PyPI resolves relative links against its own domain, not the GitHub repo."""
+    lines, fence = [], None
+    for line in text.splitlines():
+        match = re.match(r"^\s*(`{3,}|~{3,})", line)
+        if match:
+            if fence is None:
+                fence = match[1][0]
+            elif match[1][0] == fence:
+                fence = None
+            continue
+        if fence is None:
+            lines.append(line)
+    visible = re.sub(r"`+[^`\n]+`+", "", "\n".join(lines))
+    links = re.findall(r"\]\(\s*<?([^\s)>]+)", visible)
+    links += re.findall(r"^\s*\[[^]\n]+\]:\s*<?([^\s>]+)", visible, re.MULTILINE)
+
+    class Links(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            for name, value in attrs:
+                if name in {"href", "src"} and value:
+                    links.append(value)
+
+    Links().feed(visible)
+    relative = sorted(
+        {url for url in links if not url.startswith("#") and not re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*:", url)}
+    )
+    if relative:
+        raise ValueError(
+            "README has relative links that break on PyPI: "
+            + ", ".join(relative)
+            + ". Use absolute URLs for repository files and images."
+        )
 
 
 def check_distributions(directory, version):
@@ -44,6 +80,7 @@ def check_distributions(directory, version):
             raise ValueError(
                 f"{name}: expected greytheory {version}, got {metadata['Name']} {metadata['Version']}"
             )
+        check_readme_links((metadata.get_payload(decode=True) or b"").decode("utf-8"))
     return [path.name for path in wheels + sources]
 
 
@@ -61,7 +98,8 @@ def write_summary(version, tag, error=None):
     if error:
         text += (
             f"\n**Failed:** {error}\n\n"
-            "Set the package version in pyproject.toml, commit and push it, then create "
+            "For README link errors, use absolute repository and image URLs. "
+            "For version errors, set the package version in pyproject.toml, commit and push it, then create "
             "the matching release tag at that commit. An existing tag does not follow "
             "updates to master; re-running an old release uses its original commit.\n"
         )
@@ -81,6 +119,7 @@ def main(argv=None):
     version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     try:
         check_tag(version, args.tag)
+        check_readme_links((root / "README.md").read_text(encoding="utf-8"))
         result = {"version": version, "tag": args.tag, "status": "PASS"}
         if args.dist is not None:
             result["distributions"] = check_distributions(args.dist, version)

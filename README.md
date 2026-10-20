@@ -1,15 +1,15 @@
 # GreyTheory
 
-**English** | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
+**English** | [繁體中文](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md) | [日本語](https://github.com/Kalvar/python-GreyTheory/blob/master/README.ja.md)
 
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3977ab)](pyproject.toml)
-[![MIT License](https://img.shields.io/badge/License-MIT-36a88a)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3977ab)](https://github.com/Kalvar/python-GreyTheory/blob/master/pyproject.toml)
+[![MIT License](https://img.shields.io/badge/License-MIT-36a88a)](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE)
 [![CI](https://github.com/Kalvar/python-GreyTheory/actions/workflows/ci.yml/badge.svg)](https://github.com/Kalvar/python-GreyTheory/actions/workflows/ci.yml)
 
-![GreyTheory — Grey models, GRA, and PCA](docs/images/greytheory-banner.svg)
+![GreyTheory — Grey models, GRA, and PCA](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/greytheory-banner.svg)
 
 <p align="center"><strong>Grey forecasting, feature comparison, and PCA for Python.</strong></p>
-<p align="center"><a href="docs/README.md">Documentation</a> · <a href="#quick-start">Getting started</a> · <a href="docs/README.md#workbench">Workbench</a> · <a href="benchmarks/results/">Benchmarks</a></p>
+<p align="center"><a href="https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md">Documentation</a> · <a href="#quick-start">Getting started</a> · <a href="https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md#workbench">Workbench</a> · <a href="https://github.com/Kalvar/python-GreyTheory/tree/master/benchmarks/results/">Benchmarks</a></p>
 
 Forecast a short sequence, rank features against a target, or explore spectra and process measurements. Start with a few lines of Python, or use the bundled HTML workbench.
 
@@ -72,7 +72,7 @@ print(components)
 | `"robust_sparse"` | Joint robust and sparse projection. |
 | `"adv"` | Projection under a configurable perturbation model. |
 
-For nonnegative raw counts, use the PoissonPCA adapter. Component selection, parameters, and the distinction between GRA and PCA rankings are in the usage guide. [→ GreyPCA](docs/guide.md#pca-and-feature-selection)
+For nonnegative raw counts, use the PoissonPCA adapter. Component selection, parameters, and the distinction between GRA and PCA rankings are in the usage guide. [→ GreyPCA](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#pca-and-feature-selection)
 
 ## Explore with the workbench
 
@@ -86,19 +86,19 @@ The first launch creates `.venv` and installs the analysis and desktop dependenc
 
 You can also open the bundled HTML directly for **offline previews** of precomputed results. New settings require the command above or request/result JSON exchange.
 
-[HTML](examples/workbench/index.html) · [Read the illustrated walkthrough](docs/README.md#workbench)
+[HTML](https://github.com/Kalvar/python-GreyTheory/blob/master/examples/workbench/index.html) · [Read the illustrated walkthrough](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md#workbench)
 
-![PVD DOE — GreyTheory workbench](docs/images/workbench-doe.png)
+![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)
 
 *PVD demo: 15 synthetic runs. The projection shows sample differences; the ranking compares process inputs with the selected target.*
 
-All demo inputs and results are in [data/demo/](data/demo/README.md). Open the [demo data browser](data/demo/index.html) to choose files and find the matching workbench actions.
+All demo inputs and results are in [data/demo/](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/README.md). Open the [demo data browser](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/index.html) to choose files and find the matching workbench actions.
 
 ### More demos
 
 Try delivery routes, driver assignment, artwork spectral differences, order forecasting, 2D–4D trajectories, spectroscopy, and semiconductor tools. The image tab also compares AI-generated or uploaded handwriting images.
 
-[Read the illustrated walkthrough](docs/README.md#gallery) · [PVD CSV](data/demo/doe/pvd_15.csv) · [CVD CSV](data/demo/doe/cvd_15.csv)
+[Read the illustrated walkthrough](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md#gallery) · [PVD CSV](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/doe/pvd_15.csv) · [CVD CSV](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/doe/cvd_15.csv)
 
 > [!NOTE]
 > These examples use synthetic data. They demonstrate the workflow, not production, chemical, or forensic accuracy. Route search and assignment use dedicated optimizers; Grey supplies preference scores. Image distances do not identify writers, and artwork anomalies are investigation leads.
@@ -107,11 +107,11 @@ Try delivery routes, driver assignment, artwork spectral differences, order fore
 
 | Guide | Contents |
 | --- | --- |
-| [Read the illustrated walkthrough](docs/README.md) | Installation, previews, live analysis, and result files |
-| [GreyPCA](docs/guide.md#pca-and-feature-selection) | All six PCA backends, parameters, and component selection |
-| [Images / trajectories](docs/guide.md#start-with-image-files) | Loading images, feature extraction, and comparison |
-| [Bruker](docs/guide.md#bruker-file-readers) | SPX / BCF support and detector calibration |
-| [Usage guide](docs/guide.md) | Forecasting, GRA, quality scores, batch jobs, and references |
+| [Read the illustrated walkthrough](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md) | Installation, previews, live analysis, and result files |
+| [GreyPCA](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#pca-and-feature-selection) | All six PCA backends, parameters, and component selection |
+| [Images / trajectories](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#start-with-image-files) | Loading images, feature extraction, and comparison |
+| [Bruker](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#bruker-file-readers) | SPX / BCF support and detector calibration |
+| [Usage guide](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md) | Forecasting, GRA, quality scores, batch jobs, and references |
 
 ## Development
 
@@ -121,18 +121,18 @@ python -m pytest -q
 python -m build
 ```
 
-[Benchmarks](benchmarks/results/) · [Issues](https://github.com/Kalvar/python-GreyTheory/issues)
+[Benchmarks](https://github.com/Kalvar/python-GreyTheory/tree/master/benchmarks/results/) · [Issues](https://github.com/Kalvar/python-GreyTheory/issues)
 
 ## License
 
-[MIT](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[MIT](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE) · [Third-party notices](https://github.com/Kalvar/python-GreyTheory/blob/master/THIRD_PARTY_NOTICES.md)
 
 ## References
 
 <details>
 <summary>Core Grey and PCA papers</summary>
 
-Core references for Grey modelling, PCA, and the implemented robust solvers. Spectral and process-analysis references are in the [usage guide](docs/guide.md#references).
+Core references for Grey modelling, PCA, and the implemented robust solvers. Spectral and process-analysis references are in the [usage guide](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#references).
 
 1. Deng, J. L. (1982). [Control problems of grey systems](https://doi.org/10.1016/S0167-6911(82)80025-X). *Systems & Control Letters*, 1(5), 288–294.
 2. Liu, S. & Lin, Y. (2011). [Grey Systems: Theory and Applications](https://doi.org/10.1007/978-3-642-16158-2). Springer. Grey modelling and relational analysis.
