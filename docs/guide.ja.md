@@ -834,5 +834,3 @@ GitHub 用のソース ZIP は `python3 scripts/package_github.py` で作成で�
 - Camp (2019), [pyMCR / MCR-AR](https://doi.org/10.6028/jres.124.018).
 - [scikit-learn](https://scikit-learn.org/stable/modules/decomposition.html)、[Spectral Python](https://www.spectralpython.net/algorithms.html)、[pybaselines](https://pybaselines.readthedocs.io/en/latest/algorithms/whittaker.html)。
 - NIST/SEMATECH. [Multiple responses: the desirability approach](https://www.itl.nist.gov/div898/handbook/pri/section5/pri5322.htm)。方向と目標設定の参考。GRA の加重平均は幾何平均 desirability と異なります。
-
-- Pillow. [Image.open](https://pillow.readthedocs.io/en/stable/reference/Image.html#PIL.Image.open) と [ImageOps](https://pillow.readthedocs.io/en/stable/reference/ImageOps.html)。読込み、EXIF、余白処理。`images` extra でインストールします。
