@@ -30,6 +30,10 @@ jobs:
       MKL_NUM_THREADS: "1"
       LOKY_MAX_CPU_COUNT: "2"
       MPLBACKEND: Agg
+      # Apply to direct installs and pip calls made by isolated builds.
+      PIP_RETRIES: "8"
+      PIP_DEFAULT_TIMEOUT: "60"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
     steps:
       - uses: actions/checkout@v6
         with:
@@ -37,6 +41,10 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements-dev.txt
       - name: Check release version
         run: python scripts/check_release.py
       - name: Install build tools
