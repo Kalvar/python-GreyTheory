@@ -29,8 +29,9 @@ def test_variant_roundtrip_reproducibility_and_source_preservation(tmp_path):
     assert actual.detectors == (0, 1)
     assert not np.array_equal(actual.energy_axes[0], actual.energy_axes[1])
     assert not np.array_equal(actual.get_spectra(detector=0), counts)
-    metadata = json.loads(output.with_suffix(".simulation.json").read_text())
+    metadata = json.loads(output.with_suffix(".simulation.json").read_text(encoding="utf-8"))
     assert metadata["output_sha256"] == hashlib.sha256(output.read_bytes()).hexdigest()
+    assert "0.9–1.1" in metadata["changes"]
     dataset = read_spectrum_file(output)
     result = analyze(dataset, {"method": "pca", "components": 2})
     assert np.asarray(result["coordinates"]).shape == (9, 2)

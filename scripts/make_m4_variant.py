@@ -162,7 +162,7 @@ def generate(source, output, *, seed=20261020):
         redistribution="Derived from local measurement data; keep in ignored data/test/. No additional redistribution permission is granted.",
     )
     output.with_suffix(".simulation.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return manifest
 

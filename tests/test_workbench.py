@@ -169,7 +169,7 @@ def test_exported_request_roundtrip(tmp_path, monkeypatch):
             )
         )
     )
-    result = json.loads(execute_file(path).read_text())
+    result = json.loads(execute_file(path).read_text(encoding="utf-8"))
     assert result["dataset"]["rows"] == 15 and len(result["result"]["ranking"]) == 6
 
 
@@ -251,7 +251,7 @@ def test_public_preview_excludes_private_file_validation(tmp_path, monkeypatch):
     (folder / "private-customer.bcf").write_bytes(b"not a valid bcf")
     monkeypatch.setattr(module, "ROOT", tmp_path)
     output = build(tmp_path / "preview.js")
-    text = output.read_text()
+    text = output.read_text(encoding="utf-8")
     assert "private-customer" not in text
     payload = json.loads(text.split("window.GREY_PREVIEW=", 1)[1].rstrip(";\n"))
     assert payload["config"]["unavailable"] == []
