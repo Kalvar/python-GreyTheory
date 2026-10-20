@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "greytheory"
-version = "2.0.1"
+version = "2.0.2"
 description = "Grey models, relational analysis and scientific data analysis core"
 readme = "README.md"
 requires-python = ">=3.11"
