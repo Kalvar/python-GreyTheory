@@ -1,15 +1,14 @@
 """Synthetic truth, file integrity, and reference/query separation."""
 
 import csv
-from importlib.resources import files
 import json
 
 import numpy as np
 import pytest
 
-from greytheory.demos import make_xrf_data, run_handwriting_demo, run_xrf_demo
-from greytheory.demos.handwriting import _sheet_cells
-from greytheory.demos.xrf import _write_emsa, _write_spx
+from examples.demos import make_xrf_data, run_handwriting_demo, run_xrf_demo
+from examples.demos.handwriting import ASSETS, _sheet_cells
+from examples.demos.xrf import _write_emsa, _write_spx
 from greytheory.io.bruker import read_spx
 
 
@@ -43,7 +42,7 @@ def test_synthetic_exchange_files_preserve_counts_and_calibration(tmp_path):
 
 
 def test_ai_sheet_has_distinct_reference_and_query_cells():
-    asset = files("greytheory.demos").joinpath("assets/handwriting_ai_sheet.png")
+    asset = ASSETS / "handwriting_ai_sheet.png"
     images, records = _sheet_cells(asset)
     assert images.shape == (18, 96, 288)
     assert sum(row["split"] == "reference" for row in records) == 12
@@ -52,13 +51,13 @@ def test_ai_sheet_has_distinct_reference_and_query_cells():
     query_hashes = {row["roi_sha256"] for row in records if row["split"] == "query"}
     assert reference_hashes.isdisjoint(query_hashes)
     assert len(reference_hashes | query_hashes) == 18
-    provenance = json.loads(files("greytheory.demos").joinpath("assets/handwriting_ai_sheet.json").read_text())
+    provenance = json.loads((ASSETS / "handwriting_ai_sheet.json").read_text(encoding="utf-8"))
     assert provenance["synthetic"] is True
     assert "not verified" in provenance["labels"]
 
 
 def test_handwriting_demo_does_not_fit_query_rows_or_use_style_ids_as_targets(tmp_path, monkeypatch):
-    from greytheory.demos import handwriting
+    from examples.demos import handwriting
 
     original_fit = handwriting.GreyPCA.fit
     fit_rows = []

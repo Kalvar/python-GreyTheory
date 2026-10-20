@@ -9,10 +9,10 @@ from sklearn.linear_model import Ridge
 from sklearn.metrics import mean_absolute_error
 from sklearn.pipeline import Pipeline
 
-from .._validation import integer
-from ..analysis import GreyFeatureSelector, GreyPCA
-from ..io.bruker import read_spx
-from ..spectroscopy import PoissonPCA, element_lines
+from greytheory._validation import integer
+from greytheory.analysis import GreyFeatureSelector, GreyPCA
+from greytheory.io.bruker import read_spx
+from greytheory.spectroscopy import PoissonPCA, element_lines
 from ._report import plotting, report, table, write_csv, write_json
 
 

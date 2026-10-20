@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="360" viewBox="0 0 1400 360" role="img" aria-labelledby="title desc">
+<title id="title">GreyTheory</title><desc id="desc">Grey forecasting, relational analysis, and PCA. A signal curve and feature projection on a dark teal background.</desc>
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0c1421"/><stop offset="1" stop-color="#143e45"/></linearGradient><linearGradient id="mint"><stop stop-color="#71edc6"/><stop offset="1" stop-color="#78b9ff"/></linearGradient><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#7db5cc" stroke-opacity=".07"/></pattern></defs>
+<rect width="1400" height="360" rx="20" fill="url(#bg)"/><rect width="1400" height="360" rx="20" fill="url(#grid)"/>
+<rect x="66" y="77" width="186" height="186" rx="38" fill="#102735" stroke="#67e8c0" stroke-opacity=".45"/>
+<path d="M88 204L111 192 130 198 148 123 163 205 180 185 197 155 213 188 232 180" fill="none" stroke="url(#mint)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="148" cy="123" r="6" fill="#f3bc72"/>
+<text x="294" y="103" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="16" letter-spacing="5" fill="#70dfc4">GREY MODELS · GRA · PCA</text>
+<text x="289" y="189" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="76" font-weight="650" letter-spacing="-3" fill="#edf7fb">GreyTheory</text>
+<text x="294" y="239" font-family="system-ui,-apple-system,Segoe UI,sans-serif" font-size="23" fill="#b1c7d5">Forecast sequences. Compare features. Explore data.</text>
+<path d="M1020 275H1312M1050 292V75" stroke="#638797" stroke-opacity=".6"/>
+<g fill="#70e6c1"><circle cx="1094" cy="231" r="8"/><circle cx="1132" cy="208" r="7"/><circle cx="1167" cy="224" r="10"/><circle cx="1150" cy="171" r="6"/></g>
+<g fill="#7ab8ff"><circle cx="1220" cy="114" r="8"/><circle cx="1258" cy="149" r="11"/><circle cx="1279" cy="106" r="6"/><circle cx="1215" cy="165" r="6"/></g>
+<path d="M1080 248L1192 143 1299 96" fill="none" stroke="#f3bc72" stroke-width="2" stroke-dasharray="5 7" opacity=".7"/>
+<text x="1160" y="322" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" letter-spacing="3" fill="#9bb8c9">SIGNALS → FEATURES</text>
+</svg>

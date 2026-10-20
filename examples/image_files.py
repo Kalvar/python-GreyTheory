@@ -5,65 +5,16 @@ to read your own files. No image identity or authenticity decision is made.
 """
 
 import argparse
-import csv
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import pairwise_distances
-from sklearn.pipeline import Pipeline
 
-from greytheory.analysis import GreyPCA
-from greytheory.features import GreyWindowFeatures, ImagePatchFeatures
-from greytheory.io import load_images
-
-
-def make_image_pipeline():
-    return Pipeline([
-        ("patches", ImagePatchFeatures(grid_shape=(4, 8))),
-        ("windows", GreyWindowFeatures(8, stride=8, boundary_channel=-1)),
-        ("pca", GreyPCA(2, standardize=True)),
-    ])
-
-
-def compare_image_files(reference_paths, query_path, *, size=None):
-    """Fit on reference files only and rank their distance to one query file."""
-    reference_paths = list(reference_paths)
-    if len(reference_paths) < 3:
-        raise ValueError("provide at least three reference images for this two-component example")
-    references = load_images(reference_paths, size=size)
-    query = load_images(query_path, size=size)
-    pipeline = make_image_pipeline()
-    reference_components = pipeline.fit_transform(references)
-    query_components = pipeline.transform(query)
-    distances = pairwise_distances(query_components, reference_components)[0]
-    return {
-        "pipeline": pipeline,
-        "distances": distances,
-        "ranking": np.argsort(distances, kind="stable"),
-        "components": np.vstack((reference_components, query_components)),
-        "features": np.vstack((pipeline[:-1].transform(references), pipeline[:-1].transform(query))),
-    }
-
-
-def write_results(output, reference_paths, query_path, result):
-    output = Path(output)
-    output.mkdir(parents=True, exist_ok=True)
-    rows = [("reference", path) for path in reference_paths] + [("query", query_path)]
-    feature_names = result["pipeline"].named_steps["windows"].get_feature_names_out()
-    for filename, names, values in [
-        ("features.csv", feature_names, result["features"]),
-        ("components.csv", ["PC1", "PC2"], result["components"]),
-    ]:
-        with (output / filename).open("w", newline="", encoding="utf-8") as stream:
-            writer = csv.writer(stream)
-            writer.writerow(["role", "path", *names])
-            for (role, path), row in zip(rows, values):
-                writer.writerow([role, str(path), *row])
-    with (output / "ranking.csv").open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.writer(stream)
-        writer.writerow(["rank", "reference", "distance"])
-        for rank, index in enumerate(result["ranking"], 1):
-            writer.writerow([rank, str(reference_paths[index]), float(result["distances"][index])])
+# Re-export the existing example helpers for callers using the older interface.
+from greytheory.handwriting import (
+    compare_image_files as compare_image_files,
+    make_image_pipeline as make_image_pipeline,
+    write_results as write_results,
+)
 
 
 def create_demo_images(folder):

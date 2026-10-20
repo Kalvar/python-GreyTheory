@@ -1,7 +1,6 @@
 """AI-generated handwriting STYLE comparison, not human writer attribution."""
 
 import hashlib
-from importlib.resources import as_file, files
 from pathlib import Path
 import shutil
 
@@ -12,12 +11,13 @@ from sklearn.metrics import pairwise_distances
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from ..analysis import GreyPCA
-from ..features import GreyWindowFeatures, ImagePatchFeatures
-from ..io import load_images
+from greytheory.analysis import GreyPCA
+from greytheory.features import GreyWindowFeatures, ImagePatchFeatures
+from greytheory.io import load_images
 from ._report import plotting, report, table, write_csv, write_json
 
 STYLES = ("upright", "flowing", "angular")
+ASSETS = Path(__file__).resolve().parents[2] / "data/demo" / "handwriting"
 
 
 def _sheet_cells(path):
@@ -56,14 +56,12 @@ def run_handwriting_demo(output_dir="artifacts/synthetic_handwriting", *, sheet_
     output.mkdir(parents=True, exist_ok=True)
     master = output / "handwriting_sheet.png"
     if sheet_path is None:
-        with as_file(files("greytheory.demos").joinpath("assets/handwriting_ai_sheet.png")) as source:
-            shutil.copyfile(source, master)
+        shutil.copyfile(ASSETS / "handwriting_ai_sheet.png", master)
     else:
         source = Path(sheet_path)
         if source.resolve() != master.resolve():
             shutil.copyfile(source, master)
-    with as_file(files("greytheory.demos").joinpath("assets/handwriting_ai_sheet.json")) as source:
-        shutil.copyfile(source, output / "generation_prompt.json")
+    shutil.copyfile(ASSETS / "handwriting_ai_sheet.json", output / "generation_prompt.json")
     images, records = _sheet_cells(master)
     reference = np.array([row["split"] == "reference" for row in records])
     query = ~reference

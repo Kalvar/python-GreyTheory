@@ -11,3 +11,7 @@ with those packages and comply with the licenses of the versions you distribute.
 
 Research and file-format acknowledgements are listed in the
 [README references](README.md#references).
+
+The optional desktop workbench uses [pywebview](https://github.com/r0x0r/pywebview),
+licensed under BSD-3-Clause. It is installed separately with the `workbench` extra;
+its code and platform GUI dependencies are not bundled in this source distribution.

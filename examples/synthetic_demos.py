@@ -3,8 +3,12 @@
 import argparse
 from pathlib import Path
 
-from greytheory.demos import run_handwriting_demo, run_xrf_demo
-from greytheory.demos._report import report
+if __package__:
+    from .demos import run_handwriting_demo, run_xrf_demo
+    from .demos._report import report
+else:
+    from demos import run_handwriting_demo, run_xrf_demo
+    from demos._report import report
 
 
 def main(argv=None):

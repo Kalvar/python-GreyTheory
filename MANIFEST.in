@@ -4,18 +4,36 @@ include requirements-dev.txt
 recursive-include scripts *.py
 recursive-include benchmarks *.py *.json
 recursive-include examples *.py
-recursive-include greytheory/demos/assets *.png *.json
+include examples/workbench/index.html
+recursive-include examples/workbench/static *.css *.js
+recursive-include data/demo *.csv *.json *.png *.svg *.spx *.msa *.npz *.html
+include data/demo/README.md
 recursive-include tests *.py *.json
 exclude CHANGELOG.md MIGRATION.md IMPLEMENTATION_REPORT.md
 exclude LICENSE_AUDIT.md VULNERABILITY_AUDIT.md
 exclude sbom.cdx.json sbom.spdx.json runtime-wheel-hashes.json
 exclude requirements-runtime-*.lock scripts/audit_runtime.py
 prune licenses
-prune docs
 prune audit
-prune test_data
+prune data/test
 prune tests/fixtures/external
 prune artifacts
 prune .local
 prune test-results
 global-exclude *.pyc .DS_Store
+
+# Public documentation and screenshots
+include docs/README.md
+include docs/README.zh-TW.md
+include docs/README.ja.md
+include docs/guide.md
+include docs/guide.zh-TW.md
+include docs/guide.ja.md
+include docs/images/greytheory-banner.svg
+include docs/images/workbench-doe.png
+include docs/images/workbench-routes.png
+include docs/images/workbench-art.png
+include docs/images/workbench-handwriting.png
+include docs/images/workbench-manual.png
+
+include data/README.md

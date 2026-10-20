@@ -1,0 +1,38 @@
+{
+  "synthetic": true,
+  "entry": "index.html",
+  "instructions": "README.md",
+  "groups": [
+    {
+      "id": "doe",
+      "path": "doe/",
+      "inputs": [
+        "doe/pvd_15.csv",
+        "doe/cvd_15.csv"
+      ],
+      "gui": "光譜 / DOE",
+      "action": "Select built-in PVD/CVD or import one CSV; choose target and process inputs."
+    },
+    {
+      "id": "xrf",
+      "path": "results/xrf/",
+      "report": "results/xrf/index.html",
+      "gui": "光譜 / DOE",
+      "action": "Select built-in synthetic XRF for multi-sample analysis. Exported spectra.csv has energy rows; not a GUI sample-row CSV."
+    },
+    {
+      "id": "handwriting",
+      "path": "handwriting/",
+      "report": "results/handwriting/index.html",
+      "gui": "圖片比較",
+      "action": "Run the AI handwriting demo; the source sheet is split automatically."
+    },
+    {
+      "id": "scenarios",
+      "path": "scenarios/",
+      "gui": "應用實驗室",
+      "action": "Select a scenario and run. The input JSON is a reference export, not a result-import document."
+    }
+  ],
+  "private_data": "Keep private instrument files in ignored data/test/, outside this public package."
+}

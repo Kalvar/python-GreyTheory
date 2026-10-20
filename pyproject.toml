@@ -19,7 +19,11 @@ dependencies = [
 
 [project.optional-dependencies]
 images = ["Pillow>=12,<14"]
+workbench = ["Pillow>=12,<14", "pywebview>=5.4,<7"]
 demos = ["Pillow>=12,<14", "matplotlib>=3.9,<4"]
+
+[project.scripts]
+greytheory = "greytheory.cli:main"
 
 [project.urls]
 Repository = "https://github.com/Kalvar/python-GreyTheory"
@@ -27,16 +31,13 @@ Repository = "https://github.com/Kalvar/python-GreyTheory"
 [tool.setuptools.packages.find]
 include = ["greytheory*"]
 
-[tool.setuptools.package-data]
-"greytheory.demos" = ["assets/*.png", "assets/*.json"]
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.ruff]
 line-length = 110
-exclude = ["test_data", "build", "dist"]
+exclude = ["data/test", "build", "dist"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

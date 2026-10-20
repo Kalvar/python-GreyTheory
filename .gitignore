@@ -38,7 +38,7 @@ test-results/
 # Local reports, private instrument data, and backups
 .local/
 artifacts/
-test_data/
+data/test/
 tests/fixtures/external/
 
 # Internal notes and historical audit output
@@ -47,7 +47,6 @@ tests/fixtures/external/
 !/README.zh-TW.md
 !/README.ja.md
 !/THIRD_PARTY_NOTICES.md
-/docs/
 /audit/
 /licenses/
 /sbom.cdx.json
@@ -55,3 +54,24 @@ tests/fixtures/external/
 /runtime-wheel-hashes.json
 /requirements-runtime-*.lock
 /scripts/audit_runtime.py
+
+# Public documentation only; internal notes remain ignored
+/docs/*
+!/docs/README.md
+!/docs/README.zh-TW.md
+!/docs/README.ja.md
+!/docs/guide.md
+!/docs/guide.zh-TW.md
+!/docs/guide.ja.md
+!/docs/images/
+/docs/images/*
+!/docs/images/greytheory-banner.svg
+!/docs/images/workbench-doe.png
+!/docs/images/workbench-routes.png
+!/docs/images/workbench-art.png
+!/docs/images/workbench-handwriting.png
+!/docs/images/workbench-manual.png
+
+# Public demo dataset instructions
+!/data/demo/README.md
+!/data/README.md
