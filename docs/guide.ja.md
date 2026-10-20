@@ -819,6 +819,8 @@ GitHub 用のソース ZIP は `python3 scripts/package_github.py` で作成で�
 時間の記録は macOS arm64 の値で、環境によって変わります。
 従来の `GreyTheory`、`GreyGM*`、`add_pattern`／`add_patterns`、`grey.run.gm*` も使えます。
 
+公開前に `pyproject.toml` のバージョンを設定して commit・push し、3 OS × 2 Python の検証完了を確認します。そのコミットに対応する `v<version>` タグを作り、GitHub Release を公開します。PyPI はそのタグのコードを検証して公開します。既存タグは master の更新に追従しないため、古い Release の再実行には後の修正が含まれません。
+
 ## ライセンス
 
 [MIT](../LICENSE)。依存パッケージには各ライセンスが適用されます。[Third-party notices](../THIRD_PARTY_NOTICES.md) を参照してください。

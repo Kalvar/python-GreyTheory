@@ -30,16 +30,45 @@ def check_distributions(directory, version):
             raise ValueError("Wheel must contain exactly one METADATA file")
         wheel_metadata = BytesParser().parsebytes(wheel.read(metadata[0]))
     with tarfile.open(sources[0], "r:gz") as source:
-        metadata = [member for member in source.getmembers()
-                    if len(Path(member.name).parts) == 2 and member.name.endswith("/PKG-INFO")]
+        metadata = [
+            member
+            for member in source.getmembers()
+            if len(Path(member.name).parts) == 2 and member.name.endswith("/PKG-INFO")
+        ]
         if len(metadata) != 1:
             raise ValueError("Source distribution must contain one top-level PKG-INFO file")
         with source.extractfile(metadata[0]) as stream:
             source_metadata = BytesParser().parsebytes(stream.read())
     for name, metadata in [(wheels[0].name, wheel_metadata), (sources[0].name, source_metadata)]:
         if metadata["Name"] != "greytheory" or metadata["Version"] != version:
-            raise ValueError(f"{name}: expected greytheory {version}, got {metadata['Name']} {metadata['Version']}")
+            raise ValueError(
+                f"{name}: expected greytheory {version}, got {metadata['Name']} {metadata['Version']}"
+            )
     return [path.name for path in wheels + sources]
+
+
+def write_summary(version, tag, error=None):
+    """Expose version mismatches on the Actions run overview, not just in logs."""
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary:
+        return
+    text = (
+        "## Release version check\n\n"
+        f"- Package version: `{version}`\n"
+        f"- Release tag: `{tag or '(not a release)'}`\n"
+        f"- Expected release tag: `v{version}`\n"
+    )
+    if error:
+        text += (
+            f"\n**Failed:** {error}\n\n"
+            "Set the package version in pyproject.toml, commit and push it, then create "
+            "the matching release tag at that commit. An existing tag does not follow "
+            "updates to master; re-running an old release uses its original commit.\n"
+        )
+    else:
+        text += "\nVersion check passed.\n"
+    with Path(summary).open("a", encoding="utf-8") as handle:
+        handle.write(text)
 
 
 def main(argv=None):
@@ -60,11 +89,15 @@ def main(argv=None):
 
             metadata_version = installed_version("greytheory")
             if metadata_version != version or greytheory.__version__ != version:
-                raise ValueError(f"Version mismatch: source={version}, installed={metadata_version}, runtime={greytheory.__version__}")
+                raise ValueError(
+                    f"Version mismatch: source={version}, installed={metadata_version}, runtime={greytheory.__version__}"
+                )
             result["installed_version"] = metadata_version
             result["package_path"] = greytheory.__file__
     except ValueError as error:
+        write_summary(version, args.tag, str(error))
         parser.error(str(error))
+    write_summary(version, args.tag)
     print(json.dumps(result, indent=2))
 
 

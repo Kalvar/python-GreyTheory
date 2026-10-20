@@ -829,6 +829,8 @@ ZIP 存在 `artifacts/github_upload/`，包含原始碼與上述合成結果，�
 紀錄來自 macOS arm64，執行時間會隨環境改變。
 舊的 `GreyTheory`、`GreyGM*`、`add_pattern`／`add_patterns` 和 `grey.run.gm*` 仍可使用。
 
+發布前，先設定 `pyproject.toml` 的版本，commit、push，等三個平台與兩個 Python 版本的六組檢查通過。接著在這份提交上建立對應的 `v<版本號>` 標籤，再發布 GitHub Release。PyPI 流程會測試並上傳該標籤的程式；既有標籤不會隨 master 更新，重跑舊 Release 也不會帶入後續修正。
+
 ## 授權
 
 [MIT](../LICENSE)。相依套件依各自的授權使用，詳見[第三方授權聲明](../THIRD_PARTY_NOTICES.md)。

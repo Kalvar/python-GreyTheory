@@ -861,6 +861,8 @@ Rerun the [core benchmark](../benchmarks/compare_core.py) or [decomposition comp
 Recorded timings are from macOS arm64 and depend on the environment.
 The older `GreyTheory`, `GreyGM*`, `add_pattern`/`add_patterns`, and `grey.run.gm*` APIs remain available.
 
+To publish a release, first set the version in `pyproject.toml`, commit and push it, and wait for the six platform/Python checks to pass. Then create the matching `v<version>` tag at that commit and publish the GitHub Release. The PyPI workflow tests that tagged commit. Existing tags do not move when master changes; re-running an old release does not include later fixes.
+
 ## License
 
 [MIT](../LICENSE). Dependencies retain their own licenses; see [Third-party notices](../THIRD_PARTY_NOTICES.md).

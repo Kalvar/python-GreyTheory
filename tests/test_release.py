@@ -42,11 +42,15 @@ def test_stable_release_tag_and_version_are_required():
         check_tag("2.0.1a1", "v2.0.1a1")
 
 
-@pytest.mark.parametrize("wheel_version,source_version", [("2.0.1", "2.0.1"), ("0.1", "2.0.1"), ("2.0.1", "2.0.0a1")])
+@pytest.mark.parametrize(
+    "wheel_version,source_version", [("2.0.1", "2.0.1"), ("0.1", "2.0.1"), ("2.0.1", "2.0.0a1")]
+)
 def test_wheel_and_sdist_must_both_have_the_release_version(tmp_path, wheel_version, source_version):
     wheel = tmp_path / "greytheory-2.0.1-py3-none-any.whl"
     with ZipFile(wheel, "w") as bundle:
-        bundle.writestr("greytheory-2.0.1.dist-info/METADATA", f"Name: greytheory\nVersion: {wheel_version}\n")
+        bundle.writestr(
+            "greytheory-2.0.1.dist-info/METADATA", f"Name: greytheory\nVersion: {wheel_version}\n"
+        )
     source = tmp_path / "greytheory-2.0.1.tar.gz"
     contents = f"Name: greytheory\nVersion: {source_version}\n".encode()
     with tarfile.open(source, "w:gz") as bundle:
@@ -58,3 +62,26 @@ def test_wheel_and_sdist_must_both_have_the_release_version(tmp_path, wheel_vers
     else:
         with pytest.raises(ValueError, match="expected greytheory"):
             check_distributions(tmp_path, "2.0.1")
+
+
+def test_release_mismatch_reports_actionable_summary(tmp_path, monkeypatch):
+    from scripts.check_release import main
+
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    with pytest.raises(SystemExit) as failure:
+        main(["--tag", "v0.0.0"])
+    assert failure.value.code == 2
+    text = summary.read_text(encoding="utf-8")
+    assert "v0.0.0" in text
+    assert f"Expected release tag: `v{_version.get_version()}`" in text
+    assert "original commit" in text
+
+
+def test_matching_release_summary(tmp_path, monkeypatch):
+    from scripts.check_release import main
+
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    main(["--tag", f"v{_version.get_version()}"])
+    assert "Version check passed" in summary.read_text(encoding="utf-8")
