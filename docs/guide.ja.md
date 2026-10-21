@@ -1092,6 +1092,8 @@ GitHub 用のソース ZIP は `python3 scripts/package_github.py` で作成で�
 
 [MIT](../LICENSE)。依存パッケージには各ライセンスが適用されます。[Third-party notices](../THIRD_PARTY_NOTICES.md) を参照してください。
 
+論文に基づくアルゴリズムは非公式実装です。特許・著作権の懸念、非公開の連絡方法、必要に応じた変更・停止・削除については[権利声明](https://github.com/Kalvar/python-GreyTheory/blob/master/README.ja.md#非公式実装と権利に関する声明)をご覧ください。MIT の変更や第三者特許の許諾を意味しません。
+
 ## 参考文献と実装
 
 詳しい文献一覧は[英語版](guide.md#references)または[繁體中文版](guide.zh-TW.md#參考文獻與實作來源)を参照してください。

@@ -210,6 +210,16 @@ python -m build
 
 [MIT](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE) · [Third-party notices](https://github.com/Kalvar/python-GreyTheory/blob/master/THIRD_PARTY_NOTICES.md)
 
+### 非官方實作與權利聲明
+
+GreyTheory 中依論文開發的演算法為**非官方實作（Unofficial implementations）**，與原作者及其所屬機構沒有隸屬關係，也不代表已獲其核准或背書。參考文獻歸功於原始研究；本專案的實作差異與獨立延伸另有說明。
+
+MIT 授權涵蓋本專案貢獻者授予的權利，不代表已取得第三方專利授權，或已確認可以自由實施。使用者應依用途與部署地區評估相關權利，並取得必要許可。軟體依 MIT 以「現狀」提供；本聲明不變更 MIT 授權，也不排除依法不得免除的責任。
+
+若您認為某項實作涉及您的專利、著作權或其他權利，請來信 [ilovekalvar@gmail.com](mailto:ilovekalvar@gmail.com)，提供聯絡方式、權利依據，以及涉及的演算法或檔案。專利疑慮請附專利號、適用國家／地區、相關權利項，以及與本實作的對應說明。權利人或授權代理人可私下聯絡，請勿將機密資料貼在公開 issue。
+
+維護者將審查有具體依據的通知，並視查證結果，於必要時補正引用、修改、暫時停用、移除或下架專案可控制範圍內的相關實作與發行內容。收到通知或採取預防措施，不表示承認侵權。
+
 ## 參考文獻與實作來源
 
 <details>
