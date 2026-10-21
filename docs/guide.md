@@ -1144,7 +1144,7 @@ To publish a release, first set the version in `pyproject.toml`, commit and push
 
 [MIT](../LICENSE). Dependencies retain their own licenses; see [Third-party notices](../THIRD_PARTY_NOTICES.md).
 
-Paper-based algorithms are unofficial implementations. See the [rights notice and private contact process](https://github.com/Kalvar/python-GreyTheory/blob/master/README.md#unofficial-implementations-and-rights-notices) for patent/copyright concerns and possible correction, disabling or removal. This does not change MIT or establish third-party patent clearance.
+Algorithms developed with reference to papers are unofficial implementations. See the [rights notice and private contact process](https://github.com/Kalvar/python-GreyTheory/blob/master/README.md#unofficial-implementations-and-rights-notices) for patent/copyright concerns and possible correction, disabling or removal.
 
 ## References
 

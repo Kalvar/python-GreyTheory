@@ -1112,7 +1112,7 @@ ZIP 存在 `artifacts/github_upload/`，包含原始碼與上述合成結果，�
 
 [MIT](../LICENSE)。相依套件依各自的授權使用，詳見[第三方授權聲明](../THIRD_PARTY_NOTICES.md)。
 
-依論文開發的演算法為非官方實作。專利／著作權疑慮、私下聯絡方式及必要時修改、停用或移除的處理原則，見[權利聲明](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md#非官方實作與權利聲明)。此聲明不變更 MIT，也不代表取得第三方專利許可。
+依論文參考開發的演算法為非官方實作。專利／著作權疑慮、私下聯絡方式及必要時修改、停用或移除的處理原則，見[權利聲明](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md#非官方實作與權利聲明)。
 
 ## 參考文獻與實作來源
 
