@@ -1103,3 +1103,11 @@ GitHub 用のソース ZIP は `python3 scripts/package_github.py` で作成で�
 - Camp (2019), [pyMCR / MCR-AR](https://doi.org/10.6028/jres.124.018).
 - [scikit-learn](https://scikit-learn.org/stable/modules/decomposition.html)、[Spectral Python](https://www.spectralpython.net/algorithms.html)、[pybaselines](https://pybaselines.readthedocs.io/en/latest/algorithms/whittaker.html)。
 - NIST/SEMATECH. [Multiple responses: the desirability approach](https://www.itl.nist.gov/div898/handbook/pri/section5/pri5322.htm)。方向と目標設定の参考。GRA の加重平均は幾何平均 desirability と異なります。
+
+### 研究モデルの出典と実装対応
+
+以下の論文のモデル定義と着想は原著者の成果です。PCA 接続・固定成分オフセット・簡易関数は本プロジェクトの統合作業であり、論文の提案として扱いません。
+
+- Xu, Zhenguo; Peng, Rui; Pang, Mengyi; Jiang, Jianming; Zhang, Rujing; & Liu, Caixia (2026). [A novel grey system model with discrete Riemann–Liouville fractional derivative and its applications](https://doi.org/10.1177/00368504261481032). *Science Progress*, 109(3). RL-FGM の累加算子と応答式の出典です。本実装は論文の PSO／MAPE と異なり、格子探索と学習末尾の検証で次数を選びます。
+- Xie, Wanli; Zhao, Ruibin; Xu, Zhenguo; & Liang, Tingting (2025). [Grey-informed neural network for time-series forecasting](https://doi.org/10.1016/j.neucom.2025.130756). *Neurocomputing*, 649, 130756. [Public preprint, v2 (2024)](https://arxiv.org/abs/2403.15027v2). GINN と FGINN の出典です。公開プレプリントを参照し、ネットワーク・最適化法・予測と事前モデルの損失を変更した工学版で、著者の実験を再現していません。
+- Lawal, Ahmad; Yang, Yingjie; Baisa, Nathanael L.; & He, Hongmei (2026). [Reservoir permeability prediction using Integrated Grey-Fuzzy Gaussian Process Regression: A comprehensive framework for uncertainty quantification and interpretability](https://doi.org/10.1016/j.engappai.2026.114777). *Engineering Applications of Artificial Intelligence*, 177, 114777. GRA・GPR・ファジー信頼度を組み合わせる着想の出典です。本実装の核重みと所属規則は独自設計で、著者の IGF-GPR の再現ではありません。

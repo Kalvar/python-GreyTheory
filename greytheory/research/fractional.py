@@ -2,6 +2,9 @@
 
 Order selection uses chronological validation and a finite grid instead of the
 paper's in-sample MAPE/PSO. No publisher text, figures, data or code are bundled.
+
+Source: Zhenguo Xu, Rui Peng, Mengyi Pang, Jianming Jiang, Rujing Zhang
+and Caixia Liu (2026), Science Progress. DOI: 10.1177/00368504261481032.
 """
 
 import numpy as np

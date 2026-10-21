@@ -4,6 +4,12 @@ GRA induces fixed anisotropic RBF length scales. GP amplitude/noise may optimize
 Gaussian input-support and Cauchy uncertainty memberships are combined by min
 (fuzzy AND). The result is a declared heuristic grade, never a probability of
 correctness or a calibrated coverage statement.
+
+Conceptual source: Ahmad Lawal, Yingjie Yang, Nathanael L. Baisa and
+Hongmei He (2026), Reservoir permeability prediction using Integrated
+Grey-Fuzzy Gaussian Process Regression: A comprehensive framework for
+uncertainty quantification and interpretability.
+DOI: 10.1016/j.engappai.2026.114777. Our rules are independently designed.
 """
 
 import numpy as np

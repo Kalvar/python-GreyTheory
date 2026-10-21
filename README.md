@@ -225,3 +225,11 @@ Core references for Grey modelling, PCA, and the implemented robust solvers. Spe
 8. Vävinggren, D. et al. (2026). [A Robust Optimization Approach to Sparse Principal Component Analysis](https://arxiv.org/abs/2606.03553). AdvPCA: Algorithms 1–2 and Appendix A.3.
 
 </details>
+
+### Research-model sources and implementation attribution
+
+The papers below provide the model definitions and ideas credited to their authors. GreyTheory’s PCA composition, fixed component offsets and quick functions are project integration work; they are not presented as methods proposed by these papers.
+
+- Xu, Zhenguo; Peng, Rui; Pang, Mengyi; Jiang, Jianming; Zhang, Rujing; & Liu, Caixia (2026). [A novel grey system model with discrete Riemann–Liouville fractional derivative and its applications](https://doi.org/10.1177/00368504261481032). *Science Progress*, 109(3). Source of the RL-FGM accumulation and response core. GreyTheory uses grid search with a training-tail validation score instead of the paper’s PSO/MAPE selection.
+- Xie, Wanli; Zhao, Ruibin; Xu, Zhenguo; & Liang, Tingting (2025). [Grey-informed neural network for time-series forecasting](https://doi.org/10.1016/j.neucom.2025.130756). *Neurocomputing*, 649, 130756. [Public preprint, v2 (2024)](https://arxiv.org/abs/2403.15027v2). Source of GINN and FGINN. GreyTheory consulted the public preprint and implements engineering variants with a different network, optimizer and prediction-to-teacher loss; it does not reproduce the authors’ experiments.
+- Lawal, Ahmad; Yang, Yingjie; Baisa, Nathanael L.; & He, Hongmei (2026). [Reservoir permeability prediction using Integrated Grey-Fuzzy Gaussian Process Regression: A comprehensive framework for uncertainty quantification and interpretability](https://doi.org/10.1016/j.engappai.2026.114777). *Engineering Applications of Artificial Intelligence*, 177, 114777. Conceptual inspiration for combining GRA, GPR and fuzzy reliability. GreyTheory’s kernel weights and membership rules are independently designed, not a reproduction of the authors’ IGF-GPR.

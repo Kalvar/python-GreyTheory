@@ -227,3 +227,11 @@ python -m build
 8. Vävinggren, D. et al. (2026). [A Robust Optimization Approach to Sparse Principal Component Analysis](https://arxiv.org/abs/2606.03553). AdvPCA: Algorithms 1–2 and Appendix A.3.
 
 </details>
+
+### 研究模型來源與實作對應
+
+以下論文提供模型定義與研究構想，成果歸原作者。本專案另外加入 PCA 串接、固定主成分平移與快速函式；這些整合設計不冒稱為原論文提出的方法。
+
+- Xu, Zhenguo; Peng, Rui; Pang, Mengyi; Jiang, Jianming; Zhang, Rujing; & Liu, Caixia (2026). [A novel grey system model with discrete Riemann–Liouville fractional derivative and its applications](https://doi.org/10.1177/00368504261481032). *Science Progress*, 109(3). RL-FGM 累加算子與響應核心的來源。本專案以格點搜尋及訓練尾段驗證選階數，與原論文的 PSO／MAPE 選階方式不同。
+- Xie, Wanli; Zhao, Ruibin; Xu, Zhenguo; & Liang, Tingting (2025). [Grey-informed neural network for time-series forecasting](https://doi.org/10.1016/j.neucom.2025.130756). *Neurocomputing*, 649, 130756. [Public preprint, v2 (2024)](https://arxiv.org/abs/2403.15027v2). GINN 與 FGINN 的來源。本專案參考公開預印本，使用不同網路、優化器及預測對先驗的損失，屬工程版本，沒有重現作者實驗。
+- Lawal, Ahmad; Yang, Yingjie; Baisa, Nathanael L.; & He, Hongmei (2026). [Reservoir permeability prediction using Integrated Grey-Fuzzy Gaussian Process Regression: A comprehensive framework for uncertainty quantification and interpretability](https://doi.org/10.1016/j.engappai.2026.114777). *Engineering Applications of Artificial Intelligence*, 177, 114777. GRA、GPR 與模糊可靠度結合的概念來源。本專案的核權重與隸屬規則為獨立設計，並非原作者 IGF-GPR 的重現。

@@ -4,6 +4,10 @@ Independent engineering variants, not exact reproduction of the 2025 paper.
 The explicit loss is MSE(prediction, truth) + grey_weight*MAE(prediction, teacher)
 + ridge*mean(weights**2). This makes grey guidance depend on network parameters.
 SciPy L-BFGS-B and an analytic gradient avoid an additional deep-learning runtime.
+
+Source: Wanli Xie, Ruibin Zhao, Zhenguo Xu and Tingting Liang,
+Grey-informed neural network for time-series forecasting (2025).
+DOI: 10.1016/j.neucom.2025.130756; consulted preprint: arXiv:2403.15027v2 (2024).
 """
 
 import warnings
