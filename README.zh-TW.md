@@ -214,7 +214,7 @@ python -m build
 
 ### 非官方實作與權利聲明
 
-GreyTheory 中依論文參考開發的演算法為**非官方實作（Unofficial implementations）**，與原作者及其所屬機構沒有隸屬關係，也未獲其背書。參考文獻和其演算法價值歸功於原始研究。
+GreyTheory 中依論文參考開發的演算法為**非官方實作（Unofficial implementations）**，與原作者及其所屬機構沒有隸屬關係，也未獲其背書。參考文獻和其演算法貢獻歸功於原始研究。
 
 若您認為相關實作涉及您的專利、著作權或其他權利，請來信 [ilovekalvar@gmail.com](mailto:ilovekalvar@gmail.com)，說明權利依據及涉及的演算法或檔案；專利疑慮請附專利號與相關權利項。
 
