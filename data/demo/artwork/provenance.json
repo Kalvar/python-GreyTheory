@@ -1,0 +1,104 @@
+{
+  "synthetic": true,
+  "fictional_artwork": true,
+  "generated_date": "2026-10-21",
+  "generator": "built-in image_gen tool",
+  "label": "Original AI fictional silk painting; not an image, measurement, replica, or endorsed restoration of any museum collection.",
+  "assets": [
+    {
+      "file": "silk_reference.png",
+      "role": "AI-generated reference",
+      "prompt": "Use case: scientific-educational. Asset: full-frame reference image for an explicitly fictional museum conservation demo. Generate an ORIGINAL invented Chinese-style gongbi bird-and-flower painting on aged silk, square format. One small brown bird on a twisting flowering branch, muted teal leaves, faded coral and ivory peonies, warm pale tan empty silk background; balanced, detailed but not crowded. Flat orthographic conservation photograph, all four image edges are the painting itself; no mounting, frame, table, perspective, ruler, labels, signatures, seals, museum logo or text. Fine visible silk weave, mild uniform yellowing, a few subtle old horizontal creases, scattered tiny age spots. Natural even illumination. This is a hypothetical educational painting, not a reproduction of any real museum object, not a copy of Jin Chun Tu or Jiao Zhi Guo Ran Tu. Preserve abundant quiet background so later local alterations can be compared. High resolution 1024x1024 if possible.",
+      "sha256": "538b807f2febef0afc3a6061b5e9ddfad2ab53b9d885f50b7db2df5dcb968baa",
+      "dimensions": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "file": "silk_observed.png",
+      "role": "AI-edited observation",
+      "prompt": "Use case: precise-object-edit, scientific educational conservation demo. Edit the provided fictional aged-silk bird-and-flower painting. Produce a second full-frame observation of EXACTLY THE SAME painting: lock the canvas dimensions, all image boundaries, camera, positions of every branch, bird, flower, leaf, silk weave, illumination and overall color. Do NOT repaint or restyle the entire image. Change only two local areas: (1) around x=65%-80%, y=20%-40% add a small visibly flatter, slightly brighter blue-green imitation overpaint on a handful of existing leaves, loosely imitating an old retouch; (2) around x=20%-40%, y=50%-70% show an irregular localized loss of pigment across the large coral peony, with paler beige silk showing through a few thin flakes and an old crease. These are invented visual alterations for comparison, NOT evidence of actual conservation or pigments. Preserve the rest as close to pixel-identical as possible. Same square resolution as input. No labels, seals, text, frame, border, annotations or branding. Do not create a before-after collage.",
+      "sha256": "9627e57805b0991d03baa464dbad42468badba4511e18fa9acbc3f25f5763531",
+      "dimensions": [
+        1254,
+        1254
+      ]
+    }
+  ],
+  "intended_visual_changes": [
+    {
+      "region_normalized_xyxy": [
+        0.65,
+        0.2,
+        0.8,
+        0.4
+      ],
+      "description": "Invented blue-green overpaint on existing leaves"
+    },
+    {
+      "region_normalized_xyxy": [
+        0.2,
+        0.5,
+        0.4,
+        0.7
+      ],
+      "description": "Invented pigment flaking on the coral peony"
+    }
+  ],
+  "ground_truth": null,
+  "intended_regions_are_validated_masks": false,
+  "limitations": [
+    "Generative editing can change the entire image; prompt regions are not ground-truth labels.",
+    "RGB analysis does not identify pigments or generate measured XRF spectra.",
+    "No museum image was downloaded, copied, or redistributed in this pack.",
+    "No historical or restoration claim is made about the fictional object."
+  ],
+  "sources": [
+    {
+      "id": "npm-2026",
+      "organization": "National Palace Museum",
+      "url": "https://www.npm.gov.tw/Exhibition-Content.aspx?l=1&sno=04014556",
+      "title": "物華再現：文物保存修復",
+      "event_dates": [
+        "2026-10-08",
+        "2027-01-03"
+      ],
+      "checked": "2026-10-21",
+      "summary": "Current conservation exhibition covering preventive care, scientific analysis and restoration. Its overview does not establish a difficulty ranking of individual objects."
+    },
+    {
+      "id": "npm-silk",
+      "organization": "National Palace Museum",
+      "url": "https://theme.npm.edu.tw/InvestigationRestorationatNPM/page-2",
+      "title": "文物檢測與修復在故宮：書畫修復",
+      "event_year": 2023,
+      "summary": "A historical exhibition describes two silk paintings affected by aging, painting materials and earlier mounting methods. Preservation of original materials motivates minimal intervention and reversibility."
+    },
+    {
+      "id": "npm-film",
+      "organization": "National Palace Museum",
+      "url": "https://www.youtube.com/watch?v=urhBcjXWFNg",
+      "published": "2023-04-05",
+      "title": "故宮書畫修復_清 郎世寧 交阯果然圖 完整版",
+      "summary": "Official documentation of the restoration of a real silk painting. The generated bird-and-flower image is not that painting."
+    },
+    {
+      "id": "ntnu-2024",
+      "organization": "National Taiwan Normal University, College of Arts",
+      "url": "https://arts.ntnu.edu.tw/index.php/2024/01/10/2024011004/",
+      "published": "2024-01-10",
+      "title": "本院文保中心承接國立臺灣美術館及臺北市立美術館委託之東方繪畫典藏作品修復",
+      "summary": "Documents commissioned conservation of Lin Yu-shan's Green Shade, Chen Ching-hui's Lady, Chen Chin's Confucius Temple, and Tsai Hsueh-hsi's Taipei Confucius Temple. Reported issues include flaking, wrinkles, staining, delamination and insect damage. This motivates a fictional fragile-paint-layer example, not a claim of detecting those problems from RGB alone."
+    },
+    {
+      "id": "ntmofa-2024",
+      "organization": "National Taiwan Museum of Fine Arts",
+      "url": "https://www.ntmofa.gov.tw/News_Content.aspx?n=1383&s=207644",
+      "published": "2024-04-13",
+      "title": "匯流溯源暨致未來世代的美術史聯合開幕",
+      "summary": "Conservation exhibition news reports a two-year treatment of Lin Chao-ying's approximately 200-year-old cursive calligraphy. The demo does not reproduce that work."
+    }
+  ],
+  "reuse": "Generated assets and authored numeric demo files are included with this project's MIT distribution; no museum image rights or endorsement are claimed. Factual source links remain attribution, not redistributed source images."
+}

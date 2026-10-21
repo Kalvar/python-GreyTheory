@@ -13,7 +13,7 @@ GM1N = GreyGM1N
 GM11 = GreyGM11
 
 __all__ = [
-    "GM0N", "GM1N", "GM11", "ModelQueue", "run_models",
+    "GM0N", "GM1N", "GM11", "ModelQueue", "run_models", "analyze_features", "choose_options", "forecast_series", "predict_quality",
     "GreyTheory", "GreyGRA", "GreyGM0N", "GreyGM1N", "GreyGM11", "GreyRun", "compare_handwriting",
 ]
 
@@ -36,6 +36,14 @@ class GreyTheory:
 
 
 def __getattr__(name):
+    if name in {"forecast_series", "predict_quality"}:
+        from . import research
+
+        return getattr(research, name)
+    if name in {"analyze_features", "choose_options"}:
+        from .analysis import quick
+
+        return getattr(quick, name)
     if name == "compare_handwriting":
         from .handwriting import compare_handwriting
 

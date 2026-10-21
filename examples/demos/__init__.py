@@ -5,6 +5,8 @@ from importlib import import_module
 _EXPORTS = {
     "make_xrf_data": ("xrf", "make_xrf_data"),
     "run_xrf_demo": ("xrf", "run_xrf_demo"),
+    "compare_artwork_images": ("artwork", "compare_artwork_images"),
+    "run_artwork_demo": ("artwork", "run_artwork_demo"),
     "run_handwriting_demo": ("handwriting", "run_handwriting_demo"),
 }
 __all__ = list(_EXPORTS)

@@ -838,6 +838,273 @@ Grey means window descriptors here; categorical style IDs are never used as cont
 
 </details>
 
+## Stability, calibration and optimization
+
+Run the four-step synthetic example from the repository root:
+
+```bash
+python3 run.py optimize
+```
+
+The functions are available in `greytheory.analysis`. The example uses separate training, normal calibration and test rows:
+
+```python
+import numpy as np
+from greytheory.analysis import (
+    GreyPCA, ranking_stability, DifferenceCalibrator,
+    reconstruction_scores, search_grey_pca, optimize_candidates,
+)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(240, 6))
+target = 3 * features[:, 0] - features[:, 1] + random.normal(scale=0.1, size=240)
+train, calibration, test = features[:120], features[120:180], features[180:]
+train_target, test_target = target[:120], target[180:]
+```
+### Quick functions
+
+Use one call to rank original features and choose a GreyPCA/Ridge prediction pipeline. Optional `normal_data` adds calibration using a separate monitoring PCA fitted on training rows only. Input rows are samples; columns must be numeric features in the same order. `target` is one measured numeric response per training row. Images and spectra need feature extraction first.
+
+```python
+from greytheory import analyze_features
+
+result = analyze_features(train, train_target, normal_data=calibration)
+print(result.ranking)
+print(result.best_parameters)
+predictions = result.predict(test)
+differences = result.find_differences(test)
+result.save("artifacts/optimization/quick-report.json")
+```
+`result.ranking` contains every feature's name, selection frequency, average rank and rank variation. It reports GRA resampling stability, not PCA loadings. `result.validation_rmse` is the tuning score. `save()` writes a UTF-8 JSON report, not a loadable trained model. A calibration threshold of `null` with `insufficient_resolution` means the calibration set was too small for a finite threshold; no scores are flagged.
+
+The monitoring PCA defaults to `min(3, n_features - 1)` components, so prediction search cannot silently choose a full-rank reconstruction model. Set `monitor_components` explicitly to change this training-only baseline; it is not auto-selected for anomaly accuracy. One-feature input supports prediction but cannot use reconstruction monitoring.
+
+For prediction/ranking only, omit `normal_data`; add it later with `result.calibrate(normal_measurements)`. `find_differences()` raises until calibration is available. These flags describe reconstruction novelty, not proof that two images differ. Calibration measurements must be independent normal rows; never reuse training or final test rows. Grouped measurements can use `groups=sample_ids`. For time splits use `cv=TimeSeriesSplit(...)`; ranking resampling still needs a separate time-block design for time-dependent data.
+
+Defaults cap `top=5` at the number of features, use `repeats=40`, and search up to eight ordinary-PCA candidates with at most six components. For more control: `analyze_features(train, train_target, repeats=100, search_options={"methods": ("pca", "sparse"), "max_trials": 12, "time_budget": 60})`. Fixed candidate settings go in `search_options={"candidates": [...]}`. A supplied DataFrame's column names/order are checked; unnamed arrays must retain the original order.
+
+To compare named alternatives directly:
+
+```python
+from greytheory import choose_options
+
+options = [
+    {"name": "A", "cost": 10, "quality": 5, "days": 3},
+    {"name": "B", "cost": 12, "quality": 4, "days": 2},
+    {"name": "C", "cost": 15, "quality": 8, "days": 4},
+]
+best_options = choose_options(
+    options, smaller=["cost"], larger=["quality"], limits={"days": (None, 4)}
+)
+print(best_options)
+```
+A and C remain: A costs less, C has higher quality. B is dominated by A. Limits are inclusive `(lower, upper)` pairs; `None` means no bound on that side. Only supplied numeric objectives/constraints are used. The function retains duplicate nondominated options and returns deep copies; it does not claim a unique or global best solution.
+
+### 1. Check ranking stability
+
+Repeated GRA on subsamples reports selection frequencies, mean ranks and rank variation. Frequencies are sensitivity diagnostics, not probabilities of causation or authorship.
+
+```python
+stability = ranking_stability(train, train_target, k=2, repeats=100)
+print(stability.selection_frequency)
+print(stability.mean_rank, stability.rank_std)
+print(stability.successful_repeats, stability.skipped_repeats)
+```
+Ties share ranks and split top-k membership; constant features receive no membership. Degenerate repeats are skipped and counted. Pass `groups=sample_ids` to subsample whole specimens, authors or batches. For time-dependent data, use an appropriate blocked design rather than assuming independent rows.
+
+### 2. Calibrate difference thresholds
+
+Freeze the model first, then calibrate using separate normal measurements:
+
+```python
+monitor = GreyPCA(3, standardize=True).fit(train)
+calibrator = DifferenceCalibrator(false_alarm_rate=0.05).fit(
+    reconstruction_scores(monitor, calibration)
+)
+flags = calibrator.predict(reconstruction_scores(monitor, test))
+print(calibrator.threshold, flags)
+```
+The threshold uses the split-conformal order `ceil((n + 1) * (1 - alpha))`; flags require a score strictly above it. Too few calibration scores can yield `inf`, meaning no finite threshold is available. Marginal false-alarm control requires exchangeable normal scores; adjacent pixels, distribution shifts and multiple comparisons need separate handling. Reconstruction novelty does not prove image change or restoration. Calibration rows must not train the model, tune parameters, or be reused as the final test.
+
+### 3. Select a GreyPCA pipeline
+
+The first search supports numeric-target regression, using fold-local scaling, PCA/GRA and Ridge prediction. It evaluates a seeded random subset of a finite candidate list on identical folds:
+
+```python
+search = search_grey_pca(
+    train, train_target,
+    components=(2, 3, 4), top_k=(None, 2), rho=(0.3, 0.5),
+    max_trials=8, cv=3, random_state=7,
+)
+print(search.best_parameters, search.validation_rmse)
+predictions = search.predict(test)
+print(np.sqrt(np.mean((predictions - test_target) ** 2)))
+```
+Use `groups=sample_ids` for grouped validation, or `cv=TimeSeriesSplit(...)` for chronological splits; overlapping windows may also require a gap. Final test data stays outside the search. The reported tuning RMSE is not an independent test estimate.
+
+For backend-specific settings, pass `candidates=[{"method": "pca", "n_components": 3, "standardize": True}, {"method": "sparse", "n_components": 3, "method_params": {"alpha": 0.1}, "standardize": True}]`. All six existing GreyPCA backends can be supplied. Warnings, failed trials, fold scores and durations are in `search.trials`; convergence warnings disqualify trials. Identical decompositions are cached across GRA settings, keyed by backend settings and training data. `memory=".local/search-cache"` persists the cache locally. `time_budget=60` checks elapsed seconds between trials; a running fit and final refit may exceed it. This version uses finite random search, not TPE or successive halving, and does not auto-select image thresholds or window extraction settings.
+
+### 4. Keep multi-objective alternatives
+
+Supply a DOE/candidate table and your measured or predicted objectives. This small response model is fictional:
+
+```python
+parameters = np.array([[0.2], [0.5], [0.8]])
+
+def simulated_process(rows):
+    value = rows[:, 0]
+    quality_loss = (value - 0.8) ** 2
+    cost = 1 + 2 * value
+    return np.column_stack([quality_loss, cost]), (cost - 2.5)[:, None]
+
+alternatives = optimize_candidates(
+    parameters, simulated_process, directions=["smaller", "smaller"]
+)
+print(alternatives["parameters"])
+print(alternatives["front"].objectives)
+```
+Directions are `smaller` or `larger`; every signed constraint must be `<= 0`. Infeasible rows are excluded, duplicate nondominated rows remain, and no feasible candidate returns an empty front. Use `pareto_front(objectives, directions, constraints=...)` directly for existing measurements. This is a Pareto front among supplied candidates, not a guaranteed global optimum. If needed, generate candidates with `greytheory.semiconductor.latin_hypercube`. Predicted results require physical validation; target-value objectives need an explicit deviation/loss transformation first.
+
+## Experimental research models
+
+Run the complete synthetic comparisons:
+
+```bash
+python3 run.py research
+```
+
+Results go to `artifacts/research_models/report.json`. The workbench also has **Application lab → Research models** with four methods and parameter hints. Direct HTML bundles defaults for every method; changed parameters use local Python or request/result exchange. No new server or deep-learning dependency is required.
+
+### GreyPCA + research models
+
+All four models can use `pca`, `sparse`, `kernel`, `robust`, `robust_sparse` or `adv`. Forecast input is a time-by-channel matrix; output restores the original columns. For GINN/FGINN, change `method`. Backend options go in `pca_params={"method_params": {...}}`.
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+```python
+from greytheory.research import GreyPCAForecast, GreyPCAQuality
+
+forecast = GreyPCAForecast(
+    method="fginn", pca_method="sparse", n_components=2,
+    pca_params={"method_params": {"alpha": 0.1}},
+    model_params={"order": 0.5, "grey_weight": 0.1},
+).fit(history)
+print(forecast.predict(3))
+regressor = GreyPCAQuality(
+    pca_method="pca", n_components=3, pca_params={"top_k": 2}
+).fit(features[:40], quality[:40])
+print(regressor.predict(features[40:], return_std=True))
+```
+
+`GreyPCAForecast` fits PCA on the supplied history, shifts each retained signed component by `training_min - max(training_std, 1e-8)`, forecasts shifted series independently, then adds offsets and inverse-transforms. Offsets and PCA signs affect grey forecasts; this is a declared composition design, not a translation-invariant multivariable grey equation. No clipping is applied. Predictions are approximate reconstructions, particularly for Kernel PCA. Custom cloneable estimators work through `pca_params={"estimator": estimator}`; forecasting also requires `inverse_transform` and checks it at fit. Use `pca_method="pca"` with custom estimators.
+
+Fit the whole wrapper on training rows only, then predict held-out data. RL auto-order uses a tail of each projected training series; PCA was fitted on that full training history, so this internal score is not an end-to-end chronological cross-validation score. For strict nested validation, fit a fresh wrapper per chronological fold and compare fixed-order candidates. The final unseen test remains outside both PCA and forecasting fit.
+
+`GreyPCAQuality` fits PCA and optional supervised GRA selection on training features/targets, followed by Grey–Fuzzy GPR. `top_k` is only for quality regression, since forecasts have no external target. Reliability is in retained component space and may miss anomalies along discarded directions. PCA variance is not a benefit/cost score. No combination is guaranteed to beat the model without PCA.
+
+For nonnegative raw counts, the existing PoissonPCA adapter also composes through a custom estimator. Set `standardize=False` to preserve counts before the Anscombe transform. Its own approximate inverse clamps counts to zero; the wrapper does not add another clip. Quality regression uses the same `pca_params` with `GreyPCAQuality`.
+
+```python
+from greytheory.spectroscopy import PoissonPCA
+
+counts_model = GreyPCAForecast(
+    pca_params={"estimator": PoissonPCA(2), "standardize": False},
+    model_params={"order": 1},
+).fit(history)
+print(counts_model.predict(3))
+```
+
+### Quick calls
+
+A univariate, nonnegative sequence must have equal time steps and no missing rows:
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+Choose `method="ginn"` or `"fginn"` for the neural variants; model keyword arguments can be supplied to `forecast_series()`. This is not the unavailable non-equidistant recursive model.
+
+For feature-based quality regression, keep a separate test set:
+
+```python
+import numpy as np
+from greytheory import predict_quality
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+target = 100 + 5 * features[:, 0] + 2 * features[:, 1] ** 2
+result = predict_quality(features[:40], target[:40], features[40:])
+print(result["prediction"], result["std"])
+print(result["reliability"]["grade"])
+```
+`std` is GP predictive standard deviation in target units. Reliability grades are declared fuzzy heuristics, not correctness probabilities, pass/fail specifications, or calibrated intervals. The returned `model` supports further predictions; it is not a JSON field to serialize directly.
+
+### Models and diagnostics
+
+```python
+from greytheory.research import RLFGM, GINN, FGINN, GreyFuzzyGPR
+
+rl = RLFGM(order=0.5).fit(values)
+network = GINN(window=3, grey_weight=0.1).fit(values)
+fractional_network = FGINN(window=3, order=0.5, beta=1).fit(values)
+print(rl.predict(3), network.predict(3), fractional_network.predict(3))
+print(network.diagnostics)
+```
+These are research implementations: RL-FGM implements the RL operator and response core; GINN/FGINN are explicitly adapted engineering variants; Grey–Fuzzy GPR is our independent design. None claims full reproduction of the authors' experiments.
+
+- **RL-FGM:** uses $w_j=[j^r-(j-1)^r]/\Gamma(r+1)$, a lower triangular accumulation matrix, and triangular-solve restoration. At $r=0$ the matrix is identity; $r=1$ recovers standard AGO. The initial state is $x_1/\Gamma(r+1)$, and the zero-development-coefficient limit is explicit. `order="auto"` chooses from a finite grid using a chronological training tail, not the paper's in-sample MAPE/PSO. Input length plus forecast is limited to 2048.
+- **GINN:** a past-window tanh MLP trained by SciPy L-BFGS-B with an analytic gradient. Our loss is `MSE(prediction, truth) + grey_weight * MAE(prediction, teacher) + weight_penalty`. Each teacher uses only the preceding window. In the preprint's notation, a fixed `error(truth, grey)` term would have zero gradient with respect to the network; we explicitly use prediction-to-teacher guidance. Network depth, optimizer and loss differ from the reported experiment. `grey_weight=0` removes guidance; non-convergence warns without replacing the model.
+- **FGINN:** uses explicit tM weights $\Gamma(\beta+1)k^{r-1}$ and their matching difference inverse. We specify a weighted-time grey response, $d\tau_k=w_k$, to resolve ambiguous response notation. This is a documented engineering choice; order=beta=1 matches the ordinary GINN teacher. It is not RL-FGM's convolutional accumulation.
+- **Grey–Fuzzy GPR:** training-only GRA (both signs) sets positive fixed anisotropic RBF weights; `grey_strength=0` matches the otherwise identical uniform GP. GP amplitude/noise can optimize. Fuzzy input support uses nearest-neighbor distance in the weighted standardized space, with bandwidth fixed by the 90th percentile training leave-one-distinct-neighbor distance. Precision membership is `1 / (1 + (std / training_target_std)**2)`; the reliability grade is the minimum of support and precision. Labels use 0.75/0.4 cutoffs. These rules do not reproduce IGF-GPR's published kernel tuning or fuzzy rule base and do not alter predictions.
+
+### What the synthetic comparisons show
+
+The checked-in [comparison report](../benchmarks/results/research_models.json) uses three seeds, smooth/seasonal equal-step sequences, fixed 36/12 train/test splits and 60/40 GP splits (ten shifted tests). No final test is used for fitting, order selection or hyperparameter selection. In this fixture RL-FGM selected ordinary order 1 and matched GM11. GINN/FGINN had worse average long-horizon RMSE than GM11; two plain-network fits did not converge. The GRA-GP variant reduced in-domain error in all three tested seeds, but both GP models had large shifted-domain errors. These are toy results, not evidence of domain accuracy or universal superiority.
+
+Independent source implementation only: no author code, publisher figures/text, or external case data are bundled. The RL-FGM article is CC BY-NC 4.0; this repository does not redistribute it. Core numerical definitions and implementation changes are documented above; GreyTheory's own code remains MIT.
+
+Sources: [RL-FGM](https://doi.org/10.1177/00368504261481032), [GINN/FGINN public preprint](https://arxiv.org/html/2403.15027v2), [2025 journal article](https://doi.org/10.1016/j.neucom.2025.130756), [IGF-GPR inspiration](https://doi.org/10.1016/j.engappai.2026.114777).
+
+## Improving the grey-model core
+
+Model improvements differ from searching GreyPCA settings. The following research directions are based on publisher abstracts/available descriptions, not complete reproductions of those papers.
+
+| Direction | Mathematical change | Current status |
+| --- | --- | --- |
+| Background value | Improve the approximation to the accumulated sequence's integral; tune adjacent-value interpolation on chronological validation | `alpha` and `background_mode="corrected"` already exist; automatic temporal tuning and paper-specific integral formulas are not implemented |
+| Discrete grey model (DGM) | Fit a discrete recurrence rather than relying on the continuous GM response approximation | Not implemented |
+| Fractional accumulation | Replace integer-order AGO with a tunable fractional-order operator | RL/tM research variants now exist; extra tuning can overfit short series |
+| Stable coefficient estimation | Tikhonov/ridge, truncated SVD, and parameter selection such as GCV | Rank/condition diagnostics, `lstsq`, `rcond` and ridge exist; this is not a full reproduction of R-GMC or its GCV/L-curve selection |
+| Dynamic GRA | Change the distinguishing-coefficient formulation and decision-ranking procedure | Existing `rho`, weights and resampling diagnostics are not DGRA; DGRA is not implemented |
+
+For chronological forecasting, compare with rolling-origin holdouts and simple persistence/exponential-smoothing baselines. Do not tune on the final future segment. Fractional accumulation and fractional derivatives are different model changes; rolling windows alone do not implement either. Our two-level GM11 Convolution is also different from the convolution-integral GMC(1,N) in the regularization paper. For a next implementation, start with temporal tuning of existing corrected-background/ridge settings, then evaluate DGM before adding fractional-order models. None of these variants is guaranteed to improve every dataset.
+
+Research sources:
+
+- Xie, N. & Liu, S. (2009). [Discrete grey forecasting model and its optimization](https://doi.org/10.1016/j.apm.2008.01.011).
+- Wu, L. et al. (2013). [Grey system model with the fractional order accumulation](https://doi.org/10.1016/j.cnsns.2012.11.017).
+- He, Z. et al. (2015). [Regularized multivariable grey model for stable grey coefficients estimation](https://doi.org/10.1016/j.eswa.2014.09.058).
+- [Optimization of Background Value in GM(1,1) Model](https://doi.org/10.1016/S1874-8651(09)60011-9).
+- [DGRA: Multi-sourcing and supplier classification through Dynamic Grey Relational Analysis method](https://doi.org/10.1016/j.cie.2022.108674).
+
 ## Development and tests
 
 `greytheory/` contains the library, `examples/` contains examples and demo data, and `tests/` contains tests and fixtures.

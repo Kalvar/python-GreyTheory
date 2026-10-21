@@ -88,13 +88,27 @@ python3 run.py workbench
 
 [HTML](https://github.com/Kalvar/python-GreyTheory/blob/master/examples/workbench/index.html) · [看附截圖的操作說明](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.zh-TW.md#workbench) · [操作手冊與檔案格式](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.zh-TW.md#workbench-操作手冊) · [光譜入門](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.zh-TW.md#光譜入門一步一步操作)
 
-![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)
+右上角可切換繁體中文、English、日本語；切換時會保留目前的資料、參數與結果。
+
+![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.zh-TW.png)
 
 *PVD 示範：15 筆合成實驗。左圖看樣本差異，右邊依選取目標比較製程參數。*
 
 [資料入口](https://github.com/Kalvar/python-GreyTheory/blob/master/data/README.md)：`data/demo/` 放展示資料，`data/test/` 放自己的測試檔案（不上傳 GitHub）。
 
 所有展示資料集中在 [data/demo/](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/README.md)。不知道該選哪個檔案時，先開 [Demo 資料包入口](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/index.html)，裡面列出對應的操作頁與步驟。
+
+現場展示：執行 `python3 run.py workbench`，進入「應用實驗室」→「藝術品」情境。先用 seed 7、PCA、3 個成分、門檻分位 0.95、材料強度 0.6 執行。左圖看誤差與圈選位置，右圖核對刻意變更的 18 個位置。接著把門檻改為 0.99 重跑；再恢復 0.95，把強度降為 0.2 重跑。保持相同 seed，逐次下載結果 JSON。介面操作手冊也有完整步驟。
+
+![Artwork differences](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-art.zh-TW.png)
+
+這是合成光譜地圖的差異展示，不是上傳作品照片。此情境尚無真實參考／待測地圖成對匯入功能；標記區需要由修復專家查驗，不能直接當作補畫或真偽結論。
+
+**AI 絹畫圖片** — 在「應用實驗室」→ 藝術品情境，把「示範資料來源」切到 **AI 絹畫圖片**，按預設值執行。程式會讀取兩張 PNG，經區塊特徵 → Grey 窗口 → GreyPCA 計算。關閉／開啟標記比較畫面，再把門檻改成 0.99 重跑。
+
+[圖片、實際 CSV／JSON 與案例來源](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/index.html) · `python3 run.py artwork`
+
+[開啟專家查看與實測報告](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/review/index.html) — 成對圖片用來排查驗順序；光譜用獨立正常資料校準門檻，再搭配實物檢查。實測也加入同圖負對照：舊重建誤差圈選數不能當成變更數。展示可選葉片、花瓣、鳥身與背景，逐區查看觀察、假設和下一步檢查；內容是依公開專業流程撰寫的模擬判讀。
 
 ### 更多展示
 
@@ -104,6 +118,73 @@ python3 run.py workbench
 
 > [!NOTE]
 > 展示資料均為合成資料，用來試流程，不能當成實務準確率。配送與媒合由專用演算法搜尋，Grey 負責偏好評分；圖片距離不能判定作者，藝術品異常則是進一步查驗的線索。
+
+## 排序穩定性與最佳化
+
+[GUI 操作與截圖](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.zh-TW.md#最佳化四步驟展示)
+
+快速入口：`analyze_features()` 一次完成排名穩定性、GreyPCA 回歸搜尋與選用的正常資料校正；`choose_options()` 用欄位名稱比較多目標方案。
+
+```python
+import numpy as np
+from greytheory import analyze_features
+
+features = np.random.default_rng(7).normal(size=(120, 4))
+target = 2 * features[:60, 0] - features[:60, 1]
+result = analyze_features(features[:60], target, normal_data=features[60:90])
+predictions = result.predict(features[90:])
+```
+
+[快速 function 用法](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.zh-TW.md#快速-function)
+
+檢查 GRA 排名穩定性、用另一批正常資料校正差異門檻、自動搜尋 GreyPCA 回歸設定，並保留候選方案的多目標折衷解。
+
+```bash
+python3 run.py optimize
+```
+
+[四步驟 Python 用法](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.zh-TW.md#排序穩定性門檻校正與最佳化)。合成範例在下載專案後執行。搜尋採有限次隨機試驗與訓練切分快取；驗證分數是調參結果，不是獨立測試準確率。Pareto 結果限於輸入的候選方案。
+
+## Research models
+
+新增研究版等間隔預測與品質回歸：RL-FGM 公式核心、GINN／FGINN 工程版本，以及獨立設計的 Grey–Fuzzy GPR。
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+
+### GreyPCA + research models
+
+四種模型都能搭配 `pca`、`sparse`、`kernel`、`robust`、`robust_sparse`、`adv`。時序輸入每列是一個時間點、每欄是一個通道，預測會還原原欄位；改 `method` 可換 GINN／FGINN。PCA 專用設定放在 `pca_params={"method_params": {...}}`。
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+GUI 選「研究模型 → 搭配 PCA：on」。時序主成分採訓練資料決定的正值平移，這會影響灰色模型；品質可靠度只反映保留的主成分。
+
+```bash
+python3 run.py research
+```
+
+[用法、數學差異與實測限制](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.zh-TW.md#研究模型rl-fgmginn-與-greyfuzzy-gpr)
 
 ## Documentation
 

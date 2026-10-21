@@ -19,11 +19,11 @@ document.querySelectorAll('[data-help]').forEach(button => {
     showManual(section, button);
   });
 });
-document.querySelectorAll('[data-manual-section]').forEach(link => {
-  link.addEventListener('click', event => {
-    event.preventDefault(); // Keep #desktop intact for the Python bridge.
-    showManual(link.dataset.manualSection, manualOpener);
-  });
+manualDialog.addEventListener('click', event => {
+  const link = event.target.closest('[data-manual-section]');
+  if (!link) return;
+  event.preventDefault();
+  showManual(link.dataset.manualSection, manualOpener);
 });
 document.getElementById('closeManual').addEventListener('click', () => manualDialog.close());
 manualDialog.addEventListener('close', () => manualOpener?.focus());

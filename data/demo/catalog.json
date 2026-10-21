@@ -32,6 +32,13 @@
       "path": "scenarios/",
       "gui": "應用實驗室",
       "action": "Select a scenario and run. The input JSON is a reference export, not a result-import document."
+    },
+    {
+      "id": "artwork",
+      "path": "artwork/",
+      "report": "artwork/index.html",
+      "gui": "應用實驗室 → 藝術品 → AI 絹畫圖片",
+      "action": "Compare bundled AI images via RGB patches, Grey windows and GreyPCA. Not XRF; no validated change mask."
     }
   ],
   "private_data": "Keep private instrument files in ignored data/test/, outside this public package."

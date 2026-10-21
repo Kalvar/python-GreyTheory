@@ -1,0 +1,27 @@
+{
+  "format": "greytheory-artwork-images-v1",
+  "input_kind": "display_rgb_images",
+  "shape": [
+    12,
+    12
+  ],
+  "method": "pca",
+  "components": 3,
+  "quantile": 0.95,
+  "threshold": 0.9136014046998966,
+  "flagged_positions": 20,
+  "ground_truth": null,
+  "provenance": {
+    "reference_sha256": "538b807f2febef0afc3a6061b5e9ddfad2ab53b9d885f50b7db2df5dcb968baa",
+    "observed_sha256": "9627e57805b0991d03baa464dbad42468badba4511e18fa9acbc3f25f5763531",
+    "reference_only_fit": true,
+    "registered_by_this_function": false
+  },
+  "limitations": [
+    "RGB image features, not XRF spectra or pigment concentrations.",
+    "AI editing may alter pixels outside the intended regions; no validated change mask exists.",
+    "Reference training errors set an exploratory threshold, not a calibrated confidence level.",
+    "Camera, lighting, registration and compression differences can trigger flags."
+  ],
+  "bundled_ai_pair": true
+}

@@ -808,6 +808,273 @@ SPX 是本專案讀取用的最小範例，不宣稱等同原廠匯出檔。模�
 
 </details>
 
+## 排序穩定性、門檻校正與最佳化
+
+在專案根目錄跑完整的合成資料範例：
+
+```bash
+python3 run.py optimize
+```
+
+四個步驟都能從 `greytheory.analysis` 呼叫。先準備互相分開的訓練、正常校正與測試資料：
+
+```python
+import numpy as np
+from greytheory.analysis import (
+    GreyPCA, ranking_stability, DifferenceCalibrator,
+    reconstruction_scores, search_grey_pca, optimize_candidates,
+)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(240, 6))
+target = 3 * features[:, 0] - features[:, 1] + random.normal(scale=0.1, size=240)
+train, calibration, test = features[:120], features[120:180], features[180:]
+train_target, test_target = target[:120], target[180:]
+```
+### 快速 function
+
+一個呼叫就能完成原始特徵排序與 GreyPCA／Ridge 預測模型選擇。加上 `normal_data`，會用另一個只在訓練資料擬合的 PCA 監測模型校正差異門檻。一列是一筆樣本，欄位是同順序的數值特徵；`target` 是每筆訓練樣本對應的實測目標。圖片與原始光譜要先轉成適合的特徵。
+
+```python
+from greytheory import analyze_features
+
+result = analyze_features(train, train_target, normal_data=calibration)
+print(result.ranking)
+print(result.best_parameters)
+predictions = result.predict(test)
+differences = result.find_differences(test)
+result.save("artifacts/optimization/quick-report.json")
+```
+`result.ranking` 包含每個特徵的名稱、入選頻率、平均名次與排名變動；這是 GRA 抽樣穩定性，不是 PCA loading。`result.validation_rmse` 是調參分數。`save()` 儲存 UTF-8 JSON 報告，不是可重新載入的訓練模型。若門檻是 `null` 且狀態為 `insufficient_resolution`，代表校正樣本不足以取得有限門檻，這時不會標記異常。
+
+監測模型預設保留 `min(3, 欄位數 - 1)` 個主成分，與預測模型分開，避免預測搜尋選出完整維度後失去重建差異的意義。可用 `monitor_components` 調整這個基準；它沒有依異常辨識準確率自動選擇。只有一個特徵時可預測，但不能做重建差異監測。
+
+只做排序與預測時，省略 `normal_data` 即可；之後用 `result.calibrate(normal_measurements)` 補上。尚未校正就呼叫 `find_differences()` 會提示錯誤。這裡標記的是重建差異線索，不是兩張圖片變更的證明。校正資料必須是獨立的正常量測，不可重用訓練或最終測試資料。有分組時傳入 `groups=sample_ids`。時間切分可用 `cv=TimeSeriesSplit(...)`；排名抽樣若有時間相依，仍需另做區塊抽樣設計。
+
+預設 `top=5` 會依欄位數縮小，`repeats=40`，最多搜尋八組一般 PCA 設定、最多六個主成分。需要調整時：`analyze_features(train, train_target, repeats=100, search_options={"methods": ("pca", "sparse"), "max_trials": 12, "time_budget": 60})`。固定候選則用 `search_options={"candidates": [...]}`。DataFrame 會檢查欄名與順序；沒有欄名的陣列請自行維持原順序。
+
+要直接比較有名稱的方案：
+
+```python
+from greytheory import choose_options
+
+options = [
+    {"name": "A", "cost": 10, "quality": 5, "days": 3},
+    {"name": "B", "cost": 12, "quality": 4, "days": 2},
+    {"name": "C", "cost": 15, "quality": 8, "days": 4},
+]
+best_options = choose_options(
+    options, smaller=["cost"], larger=["quality"], limits={"days": (None, 4)}
+)
+print(best_options)
+```
+會保留 A 與 C：A 成本低，C 品質高；B 被 A 支配。限制用包含邊界的 `(下限, 上限)`，`None` 表示該側不限。只比較指定的數值指標與限制，相同的未被支配方案也會保留；回傳的是獨立副本，不會宣稱有唯一或全域最佳解。
+
+### 1. 檢查排名是否穩定
+
+對不同子樣本重跑 GRA，查看入選頻率、平均名次與名次變動。頻率表示排序對抽樣的敏感程度，不是因果或作者身分的機率。
+
+```python
+stability = ranking_stability(train, train_target, k=2, repeats=100)
+print(stability.selection_frequency)
+print(stability.mean_rank, stability.rank_std)
+print(stability.successful_repeats, stability.skipped_repeats)
+```
+同分特徵共用平均名次，並按比例分配前 k 名入選次數；常數特徵不入選。無法分析的重抽樣會跳過並計數。用 `groups=sample_ids` 可整批抽取同一樣品、作者或批次，避免拆散相關資料。時間序列需要另外設計區塊抽樣，不能直接假設每列獨立。
+
+### 2. 用正常資料校正差異門檻
+
+先固定模型，再使用另一批正常量測校正：
+
+```python
+monitor = GreyPCA(3, standardize=True).fit(train)
+calibrator = DifferenceCalibrator(false_alarm_rate=0.05).fit(
+    reconstruction_scores(monitor, calibration)
+)
+flags = calibrator.predict(reconstruction_scores(monitor, test))
+print(calibrator.threshold, flags)
+```
+門檻取 split-conformal 的第 `ceil((n + 1) * (1 - alpha))` 個排序分數，超過門檻才標記。校正資料太少時可能回傳 `inf`，表示無法給出有限門檻。邊際誤報率控制需要正常校正與新資料的分數可交換；相鄰像素、資料分布改變與多重比較需要另外處理。重建差異不等於已確認補畫或圖片變更。校正資料不能拿去訓練、挑參數或重複作最終測試。
+
+### 3. 自動選 GreyPCA 組合
+
+第一版支援有數值目標的回歸預測。每個訓練切分各自擬合正規化、PCA／GRA 與 Ridge，從有限候選中隨機抽取設定，用相同切分比較：
+
+```python
+search = search_grey_pca(
+    train, train_target,
+    components=(2, 3, 4), top_k=(None, 2), rho=(0.3, 0.5),
+    max_trials=8, cv=3, random_state=7,
+)
+print(search.best_parameters, search.validation_rmse)
+predictions = search.predict(test)
+print(np.sqrt(np.mean((predictions - test_target) ** 2)))
+```
+有樣品或批次時傳入 `groups=sample_ids`；依時間驗證可傳 `cv=TimeSeriesSplit(...)`，重疊窗口可能還需要設定間隔。最終測試資料留在搜尋之外，搜尋得到的驗證 RMSE 不是獨立測試成績。
+
+需要指定演算法參數時，傳入 `candidates=[{"method": "pca", "n_components": 3, "standardize": True}, {"method": "sparse", "n_components": 3, "method_params": {"alpha": 0.1}, "standardize": True}]`，六種既有 PCA 方法都能列入。`search.trials` 記錄每次分數、時間、失敗原因與警告；未收斂的候選不會勝出。相同訓練資料與分解設定會重用計算，調整 GRA 參數不必重算 PCA。`memory=".local/search-cache"` 可保留本機快取。`time_budget=60` 會在候選之間檢查時間，正在執行與最後重訓仍可能超時。這版是有限次隨機搜尋，尚未加入 TPE、逐輪淘汰、圖片門檻或窗口擷取參數的自動搜尋。
+
+### 4. 保留多目標折衷方案
+
+輸入 DOE／候選參數，以及實測或模型預測的多項指標。下例是虛構的品質損失與成本模型：
+
+```python
+parameters = np.array([[0.2], [0.5], [0.8]])
+
+def simulated_process(rows):
+    value = rows[:, 0]
+    quality_loss = (value - 0.8) ** 2
+    cost = 1 + 2 * value
+    return np.column_stack([quality_loss, cost]), (cost - 2.5)[:, None]
+
+alternatives = optimize_candidates(
+    parameters, simulated_process, directions=["smaller", "smaller"]
+)
+print(alternatives["parameters"])
+print(alternatives["front"].objectives)
+```
+方向填 `smaller` 或 `larger`；限制值全部 `<= 0` 才算可行。不符限制的方案會排除，相同且未被支配的方案都保留；全部不可行時回傳空清單。已有量測表可直接呼叫 `pareto_front(objectives, directions, constraints=...)`。這是輸入候選中的 Pareto 前緣，不能保證全域最佳；需要產生候選時可搭配 `greytheory.semiconductor.latin_hypercube`。模型預測的方案仍要實測，望目標值的指標先轉成偏差或損失。
+
+## 研究模型：RL-FGM、GINN 與 Grey–Fuzzy GPR
+
+跑完整的合成資料對照：
+
+```bash
+python3 run.py research
+```
+
+結果放在 `artifacts/research_models/report.json`。GUI 也有「應用實驗室 → 研究模型」，可選四個方法與查看參數提示。直接開 HTML 已附各方法的預設結果，改參數再使用本機 Python 或請求／結果交換。不需要 server 或大型深度學習套件。
+
+### GreyPCA + research models
+
+四種模型都能搭配 `pca`、`sparse`、`kernel`、`robust`、`robust_sparse`、`adv`。時序輸入每列是一個時間點、每欄是一個通道，預測會還原原欄位；改 `method` 可換 GINN／FGINN。PCA 專用設定放在 `pca_params={"method_params": {...}}`。
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+```python
+from greytheory.research import GreyPCAForecast, GreyPCAQuality
+
+forecast = GreyPCAForecast(
+    method="fginn", pca_method="sparse", n_components=2,
+    pca_params={"method_params": {"alpha": 0.1}},
+    model_params={"order": 0.5, "grey_weight": 0.1},
+).fit(history)
+print(forecast.predict(3))
+regressor = GreyPCAQuality(
+    pca_method="pca", n_components=3, pca_params={"top_k": 2}
+).fit(features[:40], quality[:40])
+print(regressor.predict(features[40:], return_std=True))
+```
+
+`GreyPCAForecast` 先在輸入歷史擬合 PCA，各主成分減去 `訓練最小值 - max(訓練標準差, 1e-8)` 後成為正值，再各自預測、加回平移並還原原欄位。平移與 PCA 的正負方向會影響灰色預測；這是明確定義的組合設計，不是平移不變的多變量灰色方程。結果不裁切，還原為近似值，Kernel PCA 尤其如此。自訂可複製模型可放在 `pca_params={"estimator": estimator}`，此時使用 `pca_method="pca"`；時序模型另要求 `inverse_transform`，會在 fit 時檢查。
+
+整個 wrapper 只放入訓練列，再對保留資料預測。RL 自動選階數使用投影後訓練序列的尾段，但 PCA 已看過整段訓練歷史，所以這個內部評分不是端到端的時序交叉驗證。若要嚴格巢狀驗證，每個時間切分都重新 fit 整個 wrapper，比較固定階數候選；最終未見測試仍須排除在所有 fit 之外。
+
+`GreyPCAQuality` 在訓練特徵與目標上擬合 PCA、選用的 GRA 成分篩選，再交給 Grey–Fuzzy GPR。`top_k` 只適用品質回歸，時序預測沒有外部目標。可靠度只反映保留的主成分，可能看不到被捨棄方向的異常。主成分變異量不代表望大／望小；加 PCA 也不保證更準。
+
+非負原始計數也能搭配現有 PoissonPCA，透過自訂 estimator 接入。設 `standardize=False`，保留 Anscombe 轉換前的計數。此 adapter 自己的近似反轉會將負計數設為零，wrapper 不額外裁切；品質回歸把同樣的 `pca_params` 傳給 `GreyPCAQuality`。
+
+```python
+from greytheory.spectroscopy import PoissonPCA
+
+counts_model = GreyPCAForecast(
+    pca_params={"estimator": PoissonPCA(2), "standardize": False},
+    model_params={"order": 1},
+).fit(history)
+print(counts_model.predict(3))
+```
+
+### 快速呼叫
+
+單變量序列必須非負、等間隔，而且沒有漏列：
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+神經網路版本改填 `method="ginn"` 或 `"fginn"`；模型參數可直接傳給 `forecast_series()`。這不是尚未取得全文的非等間隔遞迴模型。
+
+製程特徵預測品質時，另外保留測試資料：
+
+```python
+import numpy as np
+from greytheory import predict_quality
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+target = 100 + 5 * features[:, 0] + 2 * features[:, 1] ** 2
+result = predict_quality(features[:40], target[:40], features[40:])
+print(result["prediction"], result["std"])
+print(result["reliability"]["grade"])
+```
+`std` 是目標單位的 GP 預測標準差。可靠度是明確定義的模糊評分，不是正確機率、合格規格或校準過的區間。回傳的 `model` 可繼續預測，不適合直接當成 JSON 欄位儲存。
+
+### 模型與診斷
+
+```python
+from greytheory.research import RLFGM, GINN, FGINN, GreyFuzzyGPR
+
+rl = RLFGM(order=0.5).fit(values)
+network = GINN(window=3, grey_weight=0.1).fit(values)
+fractional_network = FGINN(window=3, order=0.5, beta=1).fit(values)
+print(rl.predict(3), network.predict(3), fractional_network.predict(3))
+print(network.diagnostics)
+```
+這些是研究實作：RL-FGM 實作 RL 算子與響應核心；GINN／FGINN 是記錄差異的工程版本；Grey–Fuzzy GPR 為獨立設計。都沒有宣稱完整重現作者實驗。
+
+- **RL-FGM**：使用 $w_j=[j^r-(j-1)^r]/\Gamma(r+1)$ 建立下三角累加矩陣，再解三角系統還原。$r=0$ 定義為單位矩陣，$r=1$ 回到一般 AGO。初始狀態是 $x_1/\Gamma(r+1)$，明確處理發展係數為零的極限。`order="auto"` 用訓練資料內的時間保留段，在有限階數格點中選擇，不是論文的訓練 MAPE／PSO。歷史加預測最多 2048 筆。
+- **GINN**：使用過去窗口的單層 tanh 網路，SciPy L-BFGS-B 配合解析梯度訓練。損失是 `MSE(網路預測, 真值) + grey_weight * MAE(網路預測, 灰色先驗) + 權重懲罰`。每筆先驗只使用其前面的窗口。若依預印本記號把固定的「真值對灰色預測」誤差加進去，對網路的梯度會是零，因此這裡明確使用預測對先驗的引導項。網路層數、優化器與損失不同於作者實驗。`grey_weight=0` 關閉引導；未收斂會警告，不會替換模型。
+- **FGINN**：明確使用 tM 權重 $\Gamma(\beta+1)k^{r-1}$ 與配對的差分還原，並以 $d\tau_k=w_k$ 定義加權時間的灰色響應，處理原文響應記號的歧義。這是有記錄的工程選擇；order=beta=1 與一般 GINN 先驗一致。它與 RL-FGM 的卷積累加不同。
+- **Grey–Fuzzy GPR**：只用訓練資料做正反向 GRA，產生正值的固定 RBF 各向異性權重；`grey_strength=0` 與其他設定相同的一般 GP 一致。GP 可優化幅度與噪聲。輸入支持度採加權標準空間的最近鄰距離，帶寬來自訓練資料「排除相同點後的最近鄰距離」第 90 百分位。精度隸屬度為 `1 / (1 + (std / 訓練目標標準差)**2)`，可靠度取支持度與精度的較小值；標籤門檻是 0.75／0.4。這些規則沒有重現 IGF-GPR 的核調參與模糊規則庫，也不會改寫預測值。
+
+### 合成測試目前顯示什麼
+
+[完整比較報告](../benchmarks/results/research_models.json)使用三個種子、平滑／週期等間隔序列，固定 36／12 時序切分；GP 為 60／40，其中 10 筆刻意偏移。最終測試不參與擬合、階數與超參數選擇。這組資料中，RL-FGM 選到一般階數 1，與 GM11 相同；GINN／FGINN 的長期平均 RMSE 高於 GM11，兩次沒有灰色引導的網路未收斂。GRA-GP 在三個種子的範圍內誤差較低，但兩種 GP 的分布偏移誤差都很大。這些只是玩具測試，不是領域準確率或普遍優勢的證明。
+
+全部程式為獨立撰寫，沒有打包作者程式、出版社圖片／文字或外部案例資料。RL-FGM 文章是 CC BY-NC 4.0，本專案不散布該文章。上面列出數學定義與工程差異；GreyTheory 自有程式仍維持 MIT。
+
+來源：[RL-FGM](https://doi.org/10.1177/00368504261481032)、[GINN／FGINN 公開預印本](https://arxiv.org/html/2403.15027v2)、[2025 期刊版](https://doi.org/10.1016/j.neucom.2025.130756)、[IGF-GPR 靈感來源](https://doi.org/10.1016/j.engappai.2026.114777)。
+
+## Grey 核心理論還能怎麼改進
+
+這裡是模型本身的改進，與 GreyPCA 自動調參不同。以下依出版社摘要與可取得內容整理，尚未逐式重現這些論文。
+
+| 方向 | 數學上改什麼 | 專案現況 |
+| --- | --- | --- |
+| 背景值最佳化 | 改善累加序列積分的近似，或用時間回測挑相鄰值插值權重 | 已有 `alpha` 與 `background_mode="corrected"`；尚未自動做時間調參或實作各論文的積分公式 |
+| 離散灰色模型 DGM | 直接估計離散遞迴式，減少依賴連續 GM 響應式的近似 | 尚未實作 |
+| 分數階累加 | 把整數階 AGO 改成可調階數的累加算子 | 已有 RL／tM 研究版本；小樣本增加自由度也可能過擬合 |
+| 穩定係數估計 | Tikhonov／ridge、截斷 SVD，以及 GCV 等正則化參數選擇 | 已有秩／條件數診斷、`lstsq`、`rcond` 與 ridge；並非完整重現 R-GMC，也沒有該論文的 GCV／L-curve 選參 |
+| 動態 GRA | 改變辨識係數的處理與決策排序流程 | 現有 `rho`、權重與重抽樣不是 DGRA；尚未實作 DGRA |
+
+時序預測應採滾動起點回測，並與持續值、指數平滑等簡單基準比較，保留最後未見的未來資料。分數階累加與分數階導數是不同模型改法；現有滑動窗口不等於任一種分數階模型。本專案的兩層 GM11 Convolution，也不等於正則化論文中採用卷積積分的 GMC(1,N)。下一步建議先對既有 corrected 背景值／ridge 做時間調參，再比較 DGM，之後才加分數階。這些變體都不能保證每組資料更準。
+
+研究來源：
+
+- Xie, N. & Liu, S. (2009). [Discrete grey forecasting model and its optimization](https://doi.org/10.1016/j.apm.2008.01.011).
+- Wu, L. et al. (2013). [Grey system model with the fractional order accumulation](https://doi.org/10.1016/j.cnsns.2012.11.017).
+- He, Z. et al. (2015). [Regularized multivariable grey model for stable grey coefficients estimation](https://doi.org/10.1016/j.eswa.2014.09.058).
+- [Optimization of Background Value in GM(1,1) Model](https://doi.org/10.1016/S1874-8651(09)60011-9).
+- [DGRA: Multi-sourcing and supplier classification through Dynamic Grey Relational Analysis method](https://doi.org/10.1016/j.cie.2022.108674).
+
 ## 開發與測試
 
 `greytheory/` 放正式程式，`examples/` 放範例與示範資料，`tests/` 放測試及 fixtures。

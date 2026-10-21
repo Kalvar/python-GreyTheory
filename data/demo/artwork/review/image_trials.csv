@@ -1,0 +1,13 @@
+method,quantile,fit_seconds,warnings,identical_input_flags,observed_flags,two_percent_exposure_flags,one_pixel_shift_flags,ground_truth
+pca,0.95,0.002884416840970516,[],8,20,6,8,
+pca,0.99,0.002884416840970516,[],2,5,2,2,
+sparse,0.95,0.19956908281892538,[],8,16,5,7,
+sparse,0.99,0.19956908281892538,[],2,0,2,2,
+kernel,0.95,0.006640166975557804,[],8,10,7,7,
+kernel,0.99,0.006640166975557804,[],2,1,2,2,
+robust,0.95,0.08325712522491813,[],8,18,6,8,
+robust,0.99,0.08325712522491813,[],2,1,2,2,
+robust_sparse,0.95,0.04801104124635458,"[""RobustSparsePCA reached iteration limit; inspect diagnostics""]",8,17,6,8,
+robust_sparse,0.99,0.04801104124635458,"[""RobustSparsePCA reached iteration limit; inspect diagnostics""]",2,1,2,2,
+adv,0.95,16.42719175014645,"[""AdvPCA reached iteration limits; inspect convergence diagnostics""]",8,18,6,6,
+adv,0.99,16.42719175014645,"[""AdvPCA reached iteration limits; inspect convergence diagnostics""]",2,0,2,2,

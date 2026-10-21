@@ -30,10 +30,40 @@ include docs/guide.md
 include docs/guide.zh-TW.md
 include docs/guide.ja.md
 include docs/images/greytheory-banner.svg
-include docs/images/workbench-doe.png
-include docs/images/workbench-routes.png
-include docs/images/workbench-art.png
-include docs/images/workbench-handwriting.png
-include docs/images/workbench-manual.png
+include docs/images/workbench-doe.en.png
+include docs/images/workbench-doe.zh-TW.png
+include docs/images/workbench-doe.ja.png
+include docs/images/workbench-routes.en.png
+include docs/images/workbench-routes.zh-TW.png
+include docs/images/workbench-routes.ja.png
+include docs/images/workbench-art.en.png
+include docs/images/workbench-art.zh-TW.png
+include docs/images/workbench-art.ja.png
+include docs/images/workbench-handwriting.en.png
+include docs/images/workbench-handwriting.zh-TW.png
+include docs/images/workbench-handwriting.ja.png
+include docs/images/workbench-manual.en.png
+include docs/images/workbench-manual.zh-TW.png
+include docs/images/workbench-manual.ja.png
 
 include data/README.md
+
+include docs/images/workbench-art-image.en.png
+include docs/images/workbench-art-image.zh-TW.png
+include docs/images/workbench-art-image.ja.png
+
+include docs/images/workbench-art-review.en.png
+include docs/images/workbench-art-review.zh-TW.png
+include docs/images/workbench-art-review.ja.png
+recursive-include data/demo/artwork/review *.js *.css
+
+include docs/images/workbench-optimization.en.png
+include docs/images/workbench-optimization.zh-TW.png
+include docs/images/workbench-optimization.ja.png
+
+include docs/images/workbench-research.en.png
+include docs/images/workbench-research.zh-TW.png
+include docs/images/workbench-research.ja.png
+include docs/images/workbench-research-gpr.en.png
+include docs/images/workbench-research-gpr.zh-TW.png
+include docs/images/workbench-research-gpr.ja.png

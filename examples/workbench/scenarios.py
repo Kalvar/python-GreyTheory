@@ -28,6 +28,120 @@ PCA_METHOD = choice(
     "下方會顯示此方法的專用參數。",
 )
 SCENARIOS = {
+    "research": dict(
+        label="研究模型 · RL-FGM / GINN / Grey–Fuzzy GPR",
+        hint="選方法後保留預設值執行。這些是研究實作，請查看診斷與保留測試，不是已驗證的機台模型。",
+        fields=[
+            SEED,
+            choice("pca_mode", "搭配 PCA", "off", ["off", "on"],
+                   "on 先用訓練資料擬合 PCA；時序以三個合成通道示範，品質使用六個製程特徵。"),
+            PCA_METHOD,
+            number("components", "主成分數", 2, 1, 3,
+                   "時序預測後還原三個通道；圖表顯示第一個通道。品質可靠度只反映保留的主成分。", integer=True),
+            choice(
+                "tool",
+                "研究方法",
+                "rlfgm",
+                ["rlfgm", "ginn", "fginn", "grey_fuzzy_gpr"],
+                "RL-FGM 為公式核心；GINN／FGINN 與 Grey–Fuzzy GPR 是有註明差異的工程版本。",
+            ),
+            choice(
+                "order_mode",
+                "階數選擇",
+                "auto",
+                ["auto", "fixed"],
+                "auto 只用訓練資料內的時間保留段選階數，沒有使用最終回測資料。",
+            ),
+            number(
+                "order",
+                "分數階數",
+                0.5,
+                0.05,
+                1,
+                "RL-FGM 固定階數或 FGINN 生效；FGINN 的 1 與 beta=1 回到一般灰色先驗。",
+            ),
+            number("beta", "tM beta", 1, 0.1, 2, "FGINN 的算子尺度參數，先用 1。"),
+            number("window", "歷史窗口", 3, 3, 8, "神經網路與灰色先驗各使用這幾筆過去值。", integer=True),
+            number("grey_weight", "灰色先驗權重", 0.1, 0, 1, "0 只訓練一般網路；增加權重不保證預測更準。"),
+            number(
+                "iterations",
+                "網路迭代上限",
+                500,
+                20,
+                1500,
+                "未收斂時會顯示警告，模型不會自動替換。",
+                integer=True,
+            ),
+            number(
+                "grey_strength",
+                "GRA 核尺度強度",
+                1,
+                0,
+                1,
+                "0 對應相同設定的一般 GPR；模糊可靠度不會改寫預測值。",
+            ),
+        ],
+    ),
+    "optimization": dict(
+        label="最佳化 · 快速分析四步驟",
+        hint="先按執行，再切換四個圖表。訓練、正常校正與測試資料分開；這裡只使用合成資料。",
+        fields=[
+            SEED,
+            number(
+                "repeats",
+                "排名重抽樣次數",
+                40,
+                10,
+                200,
+                "次數增加可減少抽樣波動，也會增加運算時間。",
+                integer=True,
+            ),
+            choice(
+                "search_family",
+                "搜尋方法範圍",
+                "pca",
+                ["pca", "pca_sparse"],
+                "先用一般 PCA；pca_sparse 加入 Sparse PCA 比較，通常較慢。",
+            ),
+            number(
+                "trials",
+                "最多比較幾組",
+                8,
+                2,
+                12,
+                "從有限候選隨機抽取；固定種子可重現候選，不保證全域最佳。",
+                integer=True,
+            ),
+            number(
+                "false_alarm_rate",
+                "正常資料誤報率設定",
+                0.05,
+                0.02,
+                0.2,
+                "只在可交換的正常資料假設下控制邊際誤報；不是每批的保證。",
+            ),
+            number(
+                "shift",
+                "模擬偏移強度",
+                2,
+                0,
+                4,
+                "只改測試副本的最後 12 筆；0 代表沒有刻意偏移，不改訓練或校正。",
+            ),
+            number(
+                "candidates",
+                "多目標候選數",
+                30,
+                10,
+                100,
+                "產生合成候選設定，保留品質損失與成本的折衷方案。",
+                integer=True,
+            ),
+            number(
+                "cost_limit", "模擬成本上限", 2.5, 0, 3, "超過上限的候選排除；這是模擬單位，不是真實價格。"
+            ),
+        ],
+    ),
     "routes": dict(
         label="運輸 · 配送路線",
         hint="Grey 品質評分比較路線偏好；路線本身由小規模完整枚舉求解。這不是即時導航或多車 VRP。",
@@ -64,6 +178,13 @@ SCENARIOS = {
         label="藝術品 · 模擬補畫區域線索",
         hint="參考光譜地圖訓練 PCA，再對另一張模擬地圖計算重建差異。異常區是調查線索，不能直接判定補畫或年代。",
         fields=[
+            choice(
+                "art_source",
+                "示範資料來源",
+                "spectral",
+                ["spectral", "ai_images"],
+                "spectral 使用合成光譜；ai_images 直接分析兩張 AI 絹畫圖片的顏色與紋理。",
+            ),
             SEED,
             PCA_METHOD,
             number(
@@ -346,7 +467,70 @@ def art_data(seed=7, strength=0.6):
     return energy, reference, observed, mask, (h, w)
 
 
+def art_images(p, params):
+    from examples.demos.artwork import ASSETS, compare_artwork_images
+
+    result = compare_artwork_images(
+        ASSETS / "silk_reference.png",
+        ASSETS / "silk_observed.png",
+        method=p["method"],
+        components=p["components"],
+        quantile=p["quantile"],
+        method_params=params,
+    )
+    ranking = np.argsort(result["observed_errors"])[::-1][:12]
+    return dict(
+        title="AI 絹畫圖片差異：顏色與紋理線索",
+        summary=f"標記 {result['flagged_positions']} / 144 個區塊；直接讀取兩張 AI PNG，模型只用參考圖擬合。",
+        tables=[
+            table(
+                "圖片差異指標",
+                [
+                    dict(
+                        threshold=result["threshold"],
+                        flagged_positions=result["flagged_positions"],
+                        regions=144,
+                    )
+                ],
+            ),
+            table(
+                "優先查看的區塊",
+                [
+                    dict(
+                        row=int(i // 12),
+                        column=int(i % 12),
+                        reconstruction_error=result["observed_errors"][i],
+                        paired_feature_distance=result["paired_feature_distance"][i],
+                    )
+                    for i in ranking
+                ],
+            ),
+        ],
+        diagram=dict(
+            type="art_images",
+            shape=[12, 12],
+            values=result["observed_errors"],
+            flags=result["flags"],
+            reference="../../data/demo/artwork/silk_reference.png",
+            observed="../../data/demo/artwork/silk_observed.png",
+        ),
+        warnings=[
+            "同圖比較也可能產生高重建誤差圈選；請用「專家查看」的成對差異排序覆核，不能把圈選數當成變更數。這是 AI 虛構絹畫，分析 RGB 圖片區塊的顏色、紋理與 Grey 窗口特徵，不是 XRF、元素濃度或真實館藏。AI 編輯可能改變指定區域以外的像素；沒有精確真值，不能計算補畫辨識準確率。拍攝、光線與對位差異也會影響標記。"
+        ],
+        inputs=dict(
+            synthetic=True,
+            source="AI-generated fictional silk painting pair",
+            provenance=result["provenance"],
+            ground_truth=None,
+            pipeline="RGB patches → Grey windows → reference-only GreyPCA → reconstruction error",
+            sources="../../data/demo/artwork/provenance.json",
+        ),
+    )
+
+
 def art(p, params):
+    if p.get("art_source") == "ai_images":
+        return art_images(p, params)
     from .analysis import spectra_dataset
 
     energy, reference, observed, truth, shape = art_data(p["seed"], p["strength"])
@@ -672,6 +856,14 @@ def run_scenario(key, options=None, *, method_parameters=None, series=None):
         result = trajectory(p, params)
     elif key == "spectral":
         result = spectral(p)
+    elif key == "research":
+        from .research import run_research
+
+        result = run_research(p, params)
+    elif key == "optimization":
+        from .optimization import run_optimization
+
+        result = run_optimization(p)
     else:
         result = semiconductor(p)
     return dict(scenario=key, parameters=p, method_parameters=params, **result)

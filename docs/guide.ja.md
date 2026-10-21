@@ -796,6 +796,273 @@ Grey は窓特徴の抽出です。スタイル ID を連続値の GRA 目標に
 
 </details>
 
+## 順位安定性・しきい値校正・最適化
+
+プロジェクトのルートで合成データの例を実行します。
+
+```bash
+python3 run.py optimize
+```
+
+関数は `greytheory.analysis` から利用できます。学習・正常校正・テストの行を分けます。
+
+```python
+import numpy as np
+from greytheory.analysis import (
+    GreyPCA, ranking_stability, DifferenceCalibrator,
+    reconstruction_scores, search_grey_pca, optimize_candidates,
+)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(240, 6))
+target = 3 * features[:, 0] - features[:, 1] + random.normal(scale=0.1, size=240)
+train, calibration, test = features[:120], features[120:180], features[180:]
+train_target, test_target = target[:120], target[180:]
+```
+### 簡単な関数
+
+一回の呼び出しで元特徴の順位と GreyPCA／Ridge 予測モデルを求めます。`normal_data` を渡すと、学習行だけで構築した別の監視 PCA でしきい値を校正します。一行が試料、各列が同じ順序の数値特徴です。`target` は学習行に対応する実測値です。画像・生のスペクトルには先に特徴抽出を行います。
+
+```python
+from greytheory import analyze_features
+
+result = analyze_features(train, train_target, normal_data=calibration)
+print(result.ranking)
+print(result.best_parameters)
+predictions = result.predict(test)
+differences = result.find_differences(test)
+result.save("artifacts/optimization/quick-report.json")
+```
+`result.ranking` は特徴名・選択頻度・平均順位・変動を含みます。GRA の標本感度であり PCA loading ではありません。`result.validation_rmse` は調整用のスコアです。`save()` は UTF-8 JSON レポートを保存し、学習モデルの保存ではありません。しきい値 `null` と `insufficient_resolution` は校正数不足を示し、検出フラグは立ちません。
+
+監視 PCA は既定で `min(3, 特徴数 - 1)` 成分とし、全成分を使う予測モデルとは分けます。`monitor_components` で変更できますが、異常検出精度での自動選択ではありません。一特徴の入力は予測のみ対応し、再構成監視は使えません。
+
+順位と予測だけなら `normal_data` を省略できます。後で `result.calibrate(normal_measurements)` を呼びます。校正前の `find_differences()` はエラーになります。再構成差は画像変化の証明ではありません。正常校正は学習・最終テストと独立させます。グループには `groups=sample_ids`、時系列分割には `cv=TimeSeriesSplit(...)` を指定します。順位の再抽出は時間ブロック方式ではありません。
+
+既定は特徴数までの `top=5`、`repeats=40`、通常 PCA 最大八候補・六成分です。調整例：`analyze_features(train, train_target, repeats=100, search_options={"methods": ("pca", "sparse"), "max_trials": 12, "time_budget": 60})`。固定候補は `search_options={"candidates": [...]}`。DataFrame は列名と順序を確認し、名前のない配列は元の列順序を保ってください。
+
+名前付き候補を比較する場合：
+
+```python
+from greytheory import choose_options
+
+options = [
+    {"name": "A", "cost": 10, "quality": 5, "days": 3},
+    {"name": "B", "cost": 12, "quality": 4, "days": 2},
+    {"name": "C", "cost": 15, "quality": 8, "days": 4},
+]
+best_options = choose_options(
+    options, smaller=["cost"], larger=["quality"], limits={"days": (None, 4)}
+)
+print(best_options)
+```
+A と C が残ります。A は費用が低く、C は品質が高く、B は A に支配されます。制約は境界を含む `(下限, 上限)` で、`None` は片側の制限なしです。指定した数値だけを比較し、同じ非劣解も保持して独立したコピーを返します。唯一解や大域最適を保証しません。
+
+### 1. 特徴順位の安定性
+
+部分標本で GRA を繰り返し、選択頻度・平均順位・順位の変動を確認します。頻度は感度の指標であり、因果関係や筆者の確率ではありません。
+
+```python
+stability = ranking_stability(train, train_target, k=2, repeats=100)
+print(stability.selection_frequency)
+print(stability.mean_rank, stability.rank_std)
+print(stability.successful_repeats, stability.skipped_repeats)
+```
+同点は平均順位と選択枠を分け合い、定数特徴は選択しません。退化した反復は除外して件数を記録します。`groups=sample_ids` で試料・筆者・バッチ単位に抽出できます。時系列には別途ブロック設計が必要です。
+
+### 2. 正常データでしきい値を校正
+
+モデルを固定し、別の正常測定値で校正します。
+
+```python
+monitor = GreyPCA(3, standardize=True).fit(train)
+calibrator = DifferenceCalibrator(false_alarm_rate=0.05).fit(
+    reconstruction_scores(monitor, calibration)
+)
+flags = calibrator.predict(reconstruction_scores(monitor, test))
+print(calibrator.threshold, flags)
+```
+split-conformal の順序 `ceil((n + 1) * (1 - alpha))` を使い、しきい値を超えた行だけを検出します。校正数が少ない場合は `inf` となり、有限のしきい値を設定できません。周辺的な誤報率制御には正常スコアの交換可能性が必要です。隣接画素・分布変化・多重比較は別途扱います。再構成差は補彩や画像変化の証明ではありません。校正データを学習・調整・最終テストに再利用しないでください。
+
+### 3. GreyPCA の組み合わせを選ぶ
+
+数値目標の回帰に対応します。各分割の学習データだけで標準化・PCA／GRA・Ridge を学習し、有限候補から無作為に選んで同じ分割で比較します。
+
+```python
+search = search_grey_pca(
+    train, train_target,
+    components=(2, 3, 4), top_k=(None, 2), rho=(0.3, 0.5),
+    max_trials=8, cv=3, random_state=7,
+)
+print(search.best_parameters, search.validation_rmse)
+predictions = search.predict(test)
+print(np.sqrt(np.mean((predictions - test_target) ** 2)))
+```
+試料やバッチには `groups=sample_ids`、時系列には `cv=TimeSeriesSplit(...)` を指定します。重なる窓には間隔も必要です。最終テストは探索の外に残します。探索 RMSE は独立したテスト結果ではありません。
+
+方式固有の設定は `candidates=[{"method": "pca", "n_components": 3, "standardize": True}, {"method": "sparse", "n_components": 3, "method_params": {"alpha": 0.1}, "standardize": True}]` で指定でき、既存の六方式を利用できます。`search.trials` に分割スコア・時間・失敗・警告を記録し、未収束の候補は採用しません。同じ学習データと分解設定は GRA 設定間でキャッシュします。`memory=".local/search-cache"` で保存できます。`time_budget=60` は候補間で確認し、実行中の学習や最終再学習は超過する場合があります。現版は有限無作為探索で、TPE・段階的打切り・画像しきい値や窓設定の自動探索は未実装です。
+
+### 4. 複数目標の候補を残す
+
+DOE／候補表と実測または予測の目標値を渡します。以下は架空の品質損失・費用モデルです。
+
+```python
+parameters = np.array([[0.2], [0.5], [0.8]])
+
+def simulated_process(rows):
+    value = rows[:, 0]
+    quality_loss = (value - 0.8) ** 2
+    cost = 1 + 2 * value
+    return np.column_stack([quality_loss, cost]), (cost - 2.5)[:, None]
+
+alternatives = optimize_candidates(
+    parameters, simulated_process, directions=["smaller", "smaller"]
+)
+print(alternatives["parameters"])
+print(alternatives["front"].objectives)
+```
+方向は `smaller` または `larger`。制約値がすべて `<= 0` の行だけを比較します。同じ非劣解はすべて残し、実行可能な行がなければ空の結果を返します。測定表には `pareto_front(objectives, directions, constraints=...)` を直接使えます。入力候補内のパレート前線であり、大域最適の保証ではありません。候補生成には `greytheory.semiconductor.latin_hypercube` を利用できます。予測結果は実測で確認し、目標値型の指標は先に偏差／損失へ変換します。
+
+## 研究モデル：RL-FGM・GINN・Grey–Fuzzy GPR
+
+合成データの比較を実行します。
+
+```bash
+python3 run.py research
+```
+
+結果は `artifacts/research_models/report.json`。GUI の「応用ラボ → 研究モデル」でも四方式を選べます。直接HTMLには既定の計算結果があり、設定変更はローカルPythonか要求／結果交換で実行します。サーバーや大型深層学習依存は不要です。
+
+### GreyPCA + research models
+
+四つのモデルで `pca`、`sparse`、`kernel`、`robust`、`robust_sparse`、`adv` を併用できます。予測入力は時点×チャネル、出力は元の列です。`method` で GINN/FGINN に変更します。方式別設定は `pca_params={"method_params": {...}}`。
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+```python
+from greytheory.research import GreyPCAForecast, GreyPCAQuality
+
+forecast = GreyPCAForecast(
+    method="fginn", pca_method="sparse", n_components=2,
+    pca_params={"method_params": {"alpha": 0.1}},
+    model_params={"order": 0.5, "grey_weight": 0.1},
+).fit(history)
+print(forecast.predict(3))
+regressor = GreyPCAQuality(
+    pca_method="pca", n_components=3, pca_params={"top_k": 2}
+).fit(features[:40], quality[:40])
+print(regressor.predict(features[40:], return_std=True))
+```
+
+`GreyPCAForecast` は入力履歴だけで PCA を学習し、各成分から `学習最小値 - max(学習標準偏差, 1e-8)` を引いて正にします。独立予測後に平行移動を戻し元の列へ逆変換します。平行移動と PCA の符号は灰色予測に影響します。これは組合せ設計であり、平行移動不変の多変量灰色方程式ではありません。予測はクリップせず、特に Kernel PCA の復元は近似です。複製可能な独自モデルは `pca_params={"estimator": estimator}` と `pca_method="pca"` で渡せます。時系列では `inverse_transform` も fit 時に検査します。
+
+wrapper 全体を学習行だけで fit し、保留データで確認します。RL 自動次数は投影済み学習系列の末尾を使いますが、PCA は学習履歴全体を見ているため、この内部スコアは一貫した時系列交差検証ではありません。厳密な入れ子検証は各時系列分割で wrapper 全体を再学習し、固定次数の候補を比較します。最終テストはすべての学習から除外してください。
+
+`GreyPCAQuality` は学習特徴・目的値で PCA と任意の GRA 成分選択を学習し、Grey–Fuzzy GPR に渡します。`top_k` は外部目的値がある品質回帰だけです。信頼度は保持成分だけで、捨てた方向の異常を見逃す場合があります。成分分散は望大・望小を示さず、PCA 追加で必ず改善するわけではありません。
+
+非負の生カウントには既存 PoissonPCA を独自 estimator として併用できます。Anscombe 変換前のカウントを維持するため `standardize=False` にします。この adapter 自身の近似逆変換は負カウントをゼロに制限し、wrapper は追加で制限しません。品質回帰では同じ `pca_params` を `GreyPCAQuality` に渡します。
+
+```python
+from greytheory.spectroscopy import PoissonPCA
+
+counts_model = GreyPCAForecast(
+    pca_params={"estimator": PoissonPCA(2), "standardize": False},
+    model_params={"order": 1},
+).fit(history)
+print(counts_model.predict(3))
+```
+
+### 簡単な呼び出し
+
+非負・等間隔・欠測行のない単変量系列を使います。
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+ネットワーク版は `method="ginn"` または `"fginn"`。モデル引数も `forecast_series()` に渡せます。全文未取得の不等間隔再帰モデルではありません。
+
+品質回帰では独立したテストを残します。
+
+```python
+import numpy as np
+from greytheory import predict_quality
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+target = 100 + 5 * features[:, 0] + 2 * features[:, 1] ** 2
+result = predict_quality(features[:40], target[:40], features[40:])
+print(result["prediction"], result["std"])
+print(result["reliability"]["grade"])
+```
+`std` は目標単位のGP予測標準偏差です。信頼度はファジー評価で、正解確率・合格仕様・校正区間ではありません。`model` は追加予測に使えますが、そのままJSONへ保存する値ではありません。
+
+### モデルと診断
+
+```python
+from greytheory.research import RLFGM, GINN, FGINN, GreyFuzzyGPR
+
+rl = RLFGM(order=0.5).fit(values)
+network = GINN(window=3, grey_weight=0.1).fit(values)
+fractional_network = FGINN(window=3, order=0.5, beta=1).fit(values)
+print(rl.predict(3), network.predict(3), fractional_network.predict(3))
+print(network.diagnostics)
+```
+RL-FGMは演算子と応答の核、GINN/FGINNは差分を明示した工学版、Grey–Fuzzy GPRは独自設計です。著者実験の完全再現ではありません。
+
+- **RL-FGM**：$w_j=[j^r-(j-1)^r]/\Gamma(r+1)$ の下三角行列と三角解法による復元。$r=0$ は単位行列、$r=1$ は通常AGOです。初期状態は $x_1/\Gamma(r+1)$、発展係数ゼロの極限も扱います。auto次数は学習内の時系列保留区間で有限格子から選び、論文の訓練MAPE／PSOとは異なります。履歴と予測の合計は2048行までです。
+- **GINN**：過去窓を使う単層tanhネットワークをSciPy L-BFGS-Bと解析勾配で学習します。損失は `MSE(prediction, truth) + grey_weight * MAE(prediction, teacher) + weight_penalty`。各事前予測はその過去窓だけで学習します。固定の真値対grey誤差はネットワークへの勾配がゼロとなるため、予測対teacherの項を明示します。層数・最適化器・損失は著者実験と異なります。重み0で通常MLP、未収束時は警告します。
+- **FGINN**：tM重み $\Gamma(\beta+1)k^{r-1}$ と対応する逆差分を使います。曖昧な応答記法に対し $d\tau_k=w_k$ の重み付き時間を明示した工学版です。order=beta=1でGINNと一致し、RLの畳み込み累積とは異なります。
+- **Grey–Fuzzy GPR**：学習内GRAから固定の正のRBF重みを作ります。`grey_strength=0` は同じ設定の通常GPと一致し、GPは振幅・雑音を最適化できます。入力支持度は加重標準空間の最近傍距離を使い、帯域は同一地点を除く学習最近傍の90百分位です。精度隷属度は `1 / (1 + (std / training_target_std)**2)`、評価は支持度との最小値です。ラベル境界は0.75/0.4で、予測値は変更しません。IGF-GPRのカーネル調整やルールの再現ではありません。
+
+### 合成比較の結果
+
+[比較レポート](../benchmarks/results/research_models.json)は三シード、平滑／周期系列の36/12分割、GPの60/40分割（変化10行）です。最終テストは学習や次数選択に使いません。この例でRL-FGMは次数1を選びGM11と一致しました。GINN/FGINNはGM11より長期平均RMSEが大きく、通常ネットワークは二回未収束でした。GRA-GPは三シードで領域内誤差が小さい一方、両GPとも領域外誤差が大きくなりました。実務精度や普遍的優位の証明ではありません。
+
+独自実装で、著者コード・出版社の図文・外部ケースデータは同梱しません。RL-FGM論文はCC BY-NC 4.0で、ここでは再配布しません。自作コードはMITを維持します。
+
+資料：[RL-FGM](https://doi.org/10.1177/00368504261481032)、[GINN/FGINN公開版](https://arxiv.org/html/2403.15027v2)、[2025年論文](https://doi.org/10.1016/j.neucom.2025.130756)、[IGF-GPRの着想](https://doi.org/10.1016/j.engappai.2026.114777)。
+
+## Grey モデル自体の改善
+
+GreyPCA の設定探索とは別に、モデル自体にも研究があります。以下は出版社の要旨・公開説明に基づく整理で、論文の完全再現ではありません。
+
+| 方向 | 数学的な変更 | 現状 |
+| --- | --- | --- |
+| 背景値 | 累積系列の積分近似や隣接値の重みを改善 | `alpha` と `background_mode="corrected"` は実装済み。時間検証による自動選択や論文固有の積分式は未実装 |
+| 離散モデル DGM | 連続応答の近似ではなく離散漸化式を学習 | 未実装 |
+| 分数階累積 | 整数階 AGO を可変次数の演算子へ変更 | RL／tM研究版あり。自由度増加による過学習に注意 |
+| 安定した係数推定 | Tikhonov／ridge、打切りSVD、GCVなどの選択 | 階数・条件数診断、`lstsq`・`rcond`・ridge は実装済み。R-GMCやGCV／L-curve選択の完全実装ではない |
+| 動的 GRA | 識別係数と意思決定の順位付けを変更 | 現在の `rho`・重み・再抽出はDGRAではなく、DGRAは未実装 |
+
+時系列はローリング起点で検証し、直前値・指数平滑などの基準と比較して最後の未来データを残します。分数階累積と分数階微分は異なり、移動窓だけでは実装できません。本プロジェクトの二段GM11 Convolutionも、正則化論文の畳み込み積分GMCとは別です。次は既存のcorrected背景値／ridgeの時間調整、次にDGM、その後に分数階を評価する順序を推奨します。常に精度が向上する保証はありません。
+
+研究資料：
+
+- Xie, N. & Liu, S. (2009). [Discrete grey forecasting model and its optimization](https://doi.org/10.1016/j.apm.2008.01.011).
+- Wu, L. et al. (2013). [Grey system model with the fractional order accumulation](https://doi.org/10.1016/j.cnsns.2012.11.017).
+- He, Z. et al. (2015). [Regularized multivariable grey model for stable grey coefficients estimation](https://doi.org/10.1016/j.eswa.2014.09.058).
+- [Optimization of Background Value in GM(1,1) Model](https://doi.org/10.1016/S1874-8651(09)60011-9).
+- [DGRA: Multi-sourcing and supplier classification through Dynamic Grey Relational Analysis method](https://doi.org/10.1016/j.cie.2022.108674).
+
 ## 開発とテスト
 
 `greytheory/` はライブラリ、`examples/` はサンプルとデモ資料、`tests/` はテストと fixtures です。

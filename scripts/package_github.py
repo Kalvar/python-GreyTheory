@@ -52,11 +52,36 @@ def public_files(root):
             "docs/guide.zh-TW.md",
             "docs/guide.ja.md",
             "docs/images/greytheory-banner.svg",
-            "docs/images/workbench-doe.png",
-            "docs/images/workbench-routes.png",
-            "docs/images/workbench-art.png",
-            "docs/images/workbench-handwriting.png",
-            "docs/images/workbench-manual.png",
+            "docs/images/workbench-research.en.png",
+            "docs/images/workbench-research.zh-TW.png",
+            "docs/images/workbench-research.ja.png",
+            "docs/images/workbench-research-gpr.en.png",
+            "docs/images/workbench-research-gpr.zh-TW.png",
+            "docs/images/workbench-research-gpr.ja.png",
+            "docs/images/workbench-optimization.en.png",
+            "docs/images/workbench-optimization.zh-TW.png",
+            "docs/images/workbench-optimization.ja.png",
+            "docs/images/workbench-doe.en.png",
+            "docs/images/workbench-doe.zh-TW.png",
+            "docs/images/workbench-doe.ja.png",
+            "docs/images/workbench-routes.en.png",
+            "docs/images/workbench-routes.zh-TW.png",
+            "docs/images/workbench-routes.ja.png",
+            "docs/images/workbench-art.en.png",
+            "docs/images/workbench-art.zh-TW.png",
+            "docs/images/workbench-art.ja.png",
+            "docs/images/workbench-handwriting.en.png",
+            "docs/images/workbench-handwriting.zh-TW.png",
+            "docs/images/workbench-handwriting.ja.png",
+            "docs/images/workbench-manual.en.png",
+            "docs/images/workbench-manual.zh-TW.png",
+            "docs/images/workbench-manual.ja.png",
+            "docs/images/workbench-art-image.en.png",
+            "docs/images/workbench-art-image.zh-TW.png",
+            "docs/images/workbench-art-image.ja.png",
+            "docs/images/workbench-art-review.en.png",
+            "docs/images/workbench-art-review.zh-TW.png",
+            "docs/images/workbench-art-review.ja.png",
             "scripts/capture_docs.py",
         )
     )
@@ -74,6 +99,19 @@ def public_files(root):
         paths.update((root / "examples/workbench/static").glob(pattern))
     for pattern in ("*.csv", "*.json"):
         paths.update((root / "data/demo/doe").glob(pattern))
+    for pattern in (
+        "*.png",
+        "*.json",
+        "*.html",
+        "results/*.json",
+        "results/*.csv",
+        "review/*.json",
+        "review/*.csv",
+        "review/*.html",
+        "review/*.js",
+        "review/*.css",
+    ):
+        paths.update((root / "data/demo/artwork").glob(pattern))
     paths.update((root / "data/demo/scenarios").glob("*.json"))
     paths.update((root / "benchmarks/results").glob("*.json"))
     results = root / RESULTS

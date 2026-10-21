@@ -6,12 +6,43 @@
 
 這頁用截圖帶你操作介面；完整 Python 用法、參數和文獻放在使用說明裡。
 
+[排序穩定性、門檻校正、GreyPCA 搜尋與 Pareto 折衷方案](guide.zh-TW.md#排序穩定性門檻校正與最佳化)可直接用 Python 呼叫。執行 `python3 run.py optimize` 跑四步驟範例，報告存到 `artifacts/optimization/report.json`。GUI 也能操作：進入「應用實驗室 → 最佳化 · 快速分析四步驟」。
+
 > [!NOTE]
 > 以下指令都在專案根目錄執行。這些截圖只使用合成資料，沒有私人 Bruker 資料或個人紀錄。
 
 展示資料已集中在 [data/demo/](../data/demo/README.md)。先開 [資料包入口](../data/demo/index.html)，可查到要選的檔案與操作頁；PVD／CVD CSV、筆跡來源圖、情境輸入和結果報告都在同一處。
 
 本機下拉清單只列出已通過讀取檢查的檔案；不能讀取的檔案另列在「未支援或無法讀取的檔案」，可展開查看原因。清單會標示「單筆光譜 → 多位置分析 ✗」或「9 個位置 → 多位置分析 ✓」。✓ 表示可分析；✗ 表示不足 3 個位置，但仍可看光譜。新增或更換檔案後按「重整頁面」。
+
+## 研究模型展示
+
+執行 `python3 run.py workbench`，進入 **應用實驗室 → 研究模型**，選方法後執行。不用選檔案，這裡使用合成資料。
+
+- **rlfgm**：先用自動階數，看歷史、8 筆保留回測與未來 4 期。自動階數只使用訓練資料內的時間保留段。
+- **ginn／fginn**：先用窗口 3、先驗權重 0.1，查看收斂狀態再讀曲線。FGINN 的 order=beta=1 回到一般灰色先驗；權重 0 則訓練一般網路。
+- **grey_fuzzy_gpr**：在相同保留資料比較一般 GP 與灰色版本。綠線是合成實測、藍線是預測；陰影是 ±2 GP 標準差，不保證實際涵蓋率。最後 10 筆刻意偏移。模糊可靠度不是正確機率。
+
+直接開 HTML 已包含所有方法的預設結果；修改參數需使用 Python 視窗或請求／結果交換。「結果 JSON」會保留診斷與警告。[數學定義與實作差異](guide.zh-TW.md#研究模型rl-fgmginn-與-greyfuzzy-gpr)清楚區分 RL 公式核心、神經網路工程版本與獨立設計的 GPR。完整基準比較用 `python3 run.py research`，報告也包含新方法比較差的情況。
+
+![研究預測模型](images/workbench-research.zh-TW.png)
+![Grey-Fuzzy GPR 保留測試](images/workbench-research-gpr.zh-TW.png)
+
+GUI 選「研究模型 → 搭配 PCA：on」。時序主成分採訓練資料決定的正值平移，這會影響灰色模型；品質可靠度只反映保留的主成分。
+
+## 最佳化四步驟展示
+
+執行 `python3 run.py workbench`，進入 **應用實驗室 → 最佳化 · 快速分析四步驟**，按 **執行情境**。不用選檔案。
+
+1. **排序穩定性**：看每個特徵入選前兩名的頻率；增加抽樣次數會花較多時間。
+2. **差異門檻**：橘點超過另一批 60 筆正常資料校正的門檻；紫邊標示模擬偏移。把偏移強度改為 0 再執行，查看正常資料誤報。
+3. **自動選組合**：比較候選的驗證 RMSE；摘要另外顯示未加擾動的獨立測試 RMSE。
+4. **多目標方案**：橘點是品質損失／成本的 Pareto 折衷方案。降低成本上限再執行，灰點代表不符限制。
+
+四個按鈕切圖不需重算；左側參數變更後需要 Python。按「結果 JSON」保留參數、試驗紀錄與快速分析完整報告。資料分成 120 筆訓練、60 筆正常校正、60 筆測試，全部是合成資料。此情境沒有新增檔案上傳入口。直接開 HTML 可看預設的 Python 計算結果；改參數可使用既有的匯出請求／匯入結果流程。
+
+![最佳化四步驟展示](images/workbench-optimization.zh-TW.png)
+
 
 <a id="workbench"></a>
 
@@ -41,7 +72,9 @@ python3 run.py workbench
 
 選 PVD 或 CVD，按載入，再選 thickness_nm 等目標並執行。看完投影與 GRA 排序後，可套用前幾名特徵，在即時模式重跑。每種製程各有 15 筆合成實驗。
 
-![PVD DOE analysis](images/workbench-doe.png)
+右上角可切換繁體中文、English、日本語；切換時會保留目前的資料、參數與結果。
+
+![PVD DOE analysis](images/workbench-doe.zh-TW.png)
 
 [CSV: PVD](../data/demo/doe/pvd_15.csv) · [CSV: CVD](../data/demo/doe/cvd_15.csv) · [Data manifest](../data/demo/doe/manifest.json)
 
@@ -53,19 +86,52 @@ python3 run.py workbench
 
 選 3–8 個配送點，調整距離、時間和遲到權重。拜訪順序由完整枚舉搜尋，Grey 評估偏好；截圖使用預設合成情境。
 
-![Synthetic delivery routes](images/workbench-routes.png)
+![Synthetic delivery routes](images/workbench-routes.zh-TW.png)
 
 ### 藝術品區域差異
 
 用獨立生成的參考光譜圖建立模型，再觀察待測圖的差異。右側是用來核對的模擬真值。被標記的區域不是補畫、年代或真偽的判定。
 
-![Synthetic artwork spectral map](images/workbench-art.png)
+現場展示順序：
+
+1. 執行 `python3 run.py workbench`，進入「應用實驗室」，選藝術品情境。
+2. 先用 seed 7、PCA、3 個成分、門檻分位 0.95、材料強度 0.6 執行。左圖看誤差與圈選位置，右圖核對刻意變更的 18 個位置。
+3. 門檻改為 0.99 重跑，觀察標記數、誤報與漏報。
+4. 恢復 0.95，強度降為 0.2，以相同 seed 重跑，觀察較細微的差異。每次下載結果 JSON。
+
+可向廠商這樣說：「先用一張參考光譜地圖建立基準，再把不同的位置標出來，幫專家縮小要查驗的範圍。」
+
+這是合成光譜地圖的差異展示，不是上傳作品照片。此情境尚無真實參考／待測地圖成對匯入功能；標記區需要由修復專家查驗，不能直接當作補畫或真偽結論。
+
+![Synthetic artwork spectral map](images/workbench-art.zh-TW.png)
+
+### AI 絹畫圖片
+
+在「應用實驗室」→ 藝術品情境，把「示範資料來源」切到 **AI 絹畫圖片**，按預設值執行。程式會讀取兩張 PNG，經區塊特徵 → Grey 窗口 → GreyPCA 計算。關閉／開啟標記比較畫面，再把門檻改成 0.99 重跑。
+
+這幅原創虛構絹畫參考公開修復議題，不是館藏複製品；RGB 差異不能推斷顏料成分。AI 編輯沒有經驗證的精確變更真值。
+
+![AI 絹畫圖片](images/workbench-art-image.zh-TW.png)
+
+[圖片、實際 CSV／JSON 與案例來源](../data/demo/artwork/index.html) · [AI prompts / provenance](../data/demo/artwork/provenance.json)
+
+`python3 run.py artwork` 可重新分析內附圖片。自己的對齊圖片可用 `python3 run.py artwork --reference reference.png --observed observed.png`；結果放在 `artifacts/artwork/`。兩張圖需尺寸、拍攝範圍一致，光線相近；不會自動對位。
+
+Python 可直接呼叫 `from examples.demos import compare_artwork_images`，再執行 `compare_artwork_images("reference.png", "observed.png")`。輸出的 `observed_features.csv` 可在「光譜 / DOE」匯入，每列一個區塊；分析 JSON 是數值結果，不是 GUI「匯入 Python 結果」用的交換檔。
+
+### 專家查看：兩套實務搭配
+
+成對圖片用來排查驗順序；光譜用獨立正常資料校準門檻，再搭配實物檢查。實測也加入同圖負對照：舊重建誤差圈選數不能當成變更數。展示可選葉片、花瓣、鳥身與背景，逐區查看觀察、假設和下一步檢查；內容是依公開專業流程撰寫的模擬判讀。
+
+[開啟專家查看與實測報告](../data/demo/artwork/review/index.html)
+
+![專家查看：兩套實務搭配](images/workbench-art-review.zh-TW.png)
 
 ### 筆跡圖片
 
 即時模式可放入一張待比較圖片與 3–30 張參考圖片，也能先看 AI demo。排序依據是特徵距離，不是同一作者的機率。
 
-![AI handwriting feature comparison](images/workbench-handwriting.png)
+![AI handwriting feature comparison](images/workbench-handwriting.zh-TW.png)
 
 ## HTML 與 Python 交換結果
 
@@ -118,7 +184,7 @@ python3 run.py workbench --request greytheory-request.json
 
 介面右上角的「操作手冊」可查看以下步驟；各區的說明按鈕會直接開啟對應章節。「重整頁面」會清除目前設定與結果，先下載要保留的結果。
 
-![Workbench 操作手冊](images/workbench-manual.png)
+![Workbench 操作手冊](images/workbench-manual.zh-TW.png)
 
 ### 開始與重整
 

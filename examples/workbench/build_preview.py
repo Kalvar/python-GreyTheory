@@ -31,6 +31,16 @@ def build(output=None):
             ),
         )
     scenes = {key: backend.request("/api/scenario", dict(scenario=key)) for key in SCENARIOS}
+    scenes["art_images"] = backend.request(
+        "/api/scenario", dict(scenario="art", parameters={"art_source": "ai_images"})
+    )
+    for tool in ("rlfgm", "ginn", "fginn", "grey_fuzzy_gpr"):
+        scenes["research_" + tool] = backend.request(
+            "/api/scenario", dict(scenario="research", parameters={"tool": tool})
+        )
+        scenes["research_" + tool + "_pca"] = backend.request(
+            "/api/scenario", dict(scenario="research", parameters={"tool": tool, "pca_mode": "on"})
+        )
     handwriting = backend.request("/api/handwriting", dict(demo=True, method="pca"))
     payload = dict(config=config, datasets=data, analysis=results, scenarios=scenes, handwriting=handwriting)
     output = Path(output or Path(__file__).resolve().parent / "static" / "preview-data.js")

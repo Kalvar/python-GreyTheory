@@ -3,6 +3,14 @@
 from importlib import import_module
 
 _EXPORTS = {
+    "analyze_features": ("quick", "analyze_features"),
+    "choose_options": ("quick", "choose_options"),
+    "ranking_stability": ("reliability", "ranking_stability"),
+    "DifferenceCalibrator": ("reliability", "DifferenceCalibrator"),
+    "reconstruction_scores": ("reliability", "reconstruction_scores"),
+    "search_grey_pca": ("search", "search_grey_pca"),
+    "pareto_front": ("optimization", "pareto_front"),
+    "optimize_candidates": ("optimization", "optimize_candidates"),
     "grey_relation": ("gra", "grey_relation"),
     "GreyGRA": ("gra", "GreyGRA"),
     "GreyFeatureSelector": ("selection", "GreyFeatureSelector"),

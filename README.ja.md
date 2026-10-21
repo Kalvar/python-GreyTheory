@@ -88,11 +88,25 @@ python3 run.py workbench
 
 [HTML](https://github.com/Kalvar/python-GreyTheory/blob/master/examples/workbench/index.html) · [スクリーンショット付きの操作説明](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md#workbench)
 
-![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)
+右上の言語選択で English・繁體中文・日本語を切り替えます。入力、設定、結果は保持されます。
+
+![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.ja.png)
 
 *PVD の模擬実験 15 件。左は試料差の投影、右は目標に対する工程入力の比較です。*
 
 デモの入力と結果は [data/demo/](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/README.md) にまとめています。[データ選択ページ](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/index.html)でファイルと操作手順を確認できます。
+
+実演では `python3 run.py workbench` で起動し、応用ラボの作品の領域差を選びます。シード 7、PCA、成分数 3、分位点 0.95、強度 0.6 で実行します。誤差マップを、意図的に変更した 18 位置と照合します。分位点を 0.99 にして再実行し、次に 0.95 に戻して強度を 0.2 に下げます。シードを固定し、各結果 JSON を保存します。操作ガイドにも手順があります。
+
+![Artwork differences](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-art.ja.png)
+
+合成スペクトルマップの比較で、作品写真の分析ではありません。このラボは実マップ対の読み込みに未対応です。検出領域は調査の手掛かりで、補彩や真贋の証明にはなりません。
+
+**AI 絹画画像** — 応用ラボの作品情境で入力を **AI 絹画画像** にし、初期設定で実行します。PNG 2 枚 → 区画特徴 → Grey 窓 → GreyPCA の計算です。枠を切り替えて比較し、分位点 0.99 でも再実行します。
+
+[画像・計算 CSV / JSON・事例の出典](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/index.html) · `python3 run.py artwork`
+
+[対話式の専門確認と実験報告を開く](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/review/index.html) — 対応画像は確認順序を付け、スペクトルは独立した正常校準と実物調査を組み合わせます。同一 PNG の負の対照が、従来の再構成誤差数は変更数ではないことを示します。領域別の観察・仮説・次の調査は公開資料による模擬判読で、専門家の実審査ではありません。
 
 ### その他のデモ
 
@@ -102,6 +116,73 @@ python3 run.py workbench
 
 > [!NOTE]
 > デモは合成データで、実務精度を示しません。配送と配車は専用の最適化を使い、Grey は選好を評価します。画像距離は作者を特定せず、美術品の異常は調査の手掛かりです。
+
+## 順位安定性と最適化
+
+[GUI の操作と画面](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.ja.md#四段階の最適化デモ)
+
+`analyze_features()` で順位安定性・GreyPCA 回帰探索・任意の正常データ校正をまとめて実行できます。`choose_options()` は名前付き多目標候補を比較します。
+
+```python
+import numpy as np
+from greytheory import analyze_features
+
+features = np.random.default_rng(7).normal(size=(120, 4))
+target = 2 * features[:60, 0] - features[:60, 1]
+result = analyze_features(features[:60], target, normal_data=features[60:90])
+predictions = result.predict(features[90:])
+```
+
+[簡単な関数](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#簡単な関数)
+
+GRA 順位の安定性、独立した正常データによるしきい値校正、GreyPCA 回帰設定の探索、候補内のパレート前線を利用できます。
+
+```bash
+python3 run.py optimize
+```
+
+[四段階の Python ガイド](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#順位安定性しきい値校正最適化)。合成例はリポジトリで実行します。探索は有限無作為試行と分割内キャッシュを使います。検証スコアは調整用で、独立テスト精度ではありません。パレート結果は入力候補内に限られます。
+
+## Research models
+
+等間隔予測と品質回帰の研究版：RL-FGMの核、GINN/FGINN工学版、独自設計Grey–Fuzzy GPRを利用できます。
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+
+### GreyPCA + research models
+
+四つのモデルで `pca`、`sparse`、`kernel`、`robust`、`robust_sparse`、`adv` を併用できます。予測入力は時点×チャネル、出力は元の列です。`method` で GINN/FGINN に変更します。方式別設定は `pca_params={"method_params": {...}}`。
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+GUI は研究モデル → PCA を併用：on。予測成分は学習データから決めた正の平行移動を使い、灰色モデルの結果に影響します。品質信頼度は保持成分だけです。
+
+```bash
+python3 run.py research
+```
+
+[用法・差分・実測上の制限](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.ja.md#研究モデルrl-fgmginngreyfuzzy-gpr)
 
 ## Documentation
 

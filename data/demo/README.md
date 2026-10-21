@@ -49,3 +49,11 @@ python -m examples.synthetic_demos --output data/demo/results
 [完整操作手冊](../../docs/README.zh-TW.md#workbench-操作手冊) · [Workbench HTML 預覽](../../examples/workbench/index.html)
 
 English: All public demo inputs and results are collected here. Open `index.html` to choose a dataset, or run `python3 run.py workbench` from the repository root for live analysis. CSVs in `doe/` are ready to import; scenario JSON and exported result tables are not GUI result-import files.
+
+## AI 絹畫展示
+
+開啟 [圖片、數值與案例來源](artwork/index.html)，或在 Workbench 的藝術品情境選「AI 絹畫圖片」。預設以兩張 PNG 擷取 RGB 區塊特徵，經 Grey 窗口與 GreyPCA 標記差異。不是 XRF，也沒有精確變更真值。
+
+`python3 run.py artwork` 可重新輸出 `artifacts/artwork/` 的分析 JSON 與 CSV。自己的對齊圖片可加 `--reference reference.png --observed observed.png`。
+
+[專家查看與實測報告](artwork/review/index.html) 包含兩套搭配、同圖負對照、光譜保留測試，以及四個區域的模擬判讀。可下載本機查驗筆記。

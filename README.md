@@ -88,11 +88,25 @@ You can also open the bundled HTML directly for **offline previews** of precompu
 
 [HTML](https://github.com/Kalvar/python-GreyTheory/blob/master/examples/workbench/index.html) · [Read the illustrated walkthrough](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md#workbench)
 
-![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.png)
+Use the language selector in the header for English, 繁體中文 or 日本語. Switching language keeps your current inputs and results.
+
+![PVD DOE — GreyTheory workbench](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-doe.en.png)
 
 *PVD demo: 15 synthetic runs. The projection shows sample differences; the ranking compares process inputs with the selected target.*
 
 All demo inputs and results are in [data/demo/](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/README.md). Open the [demo data browser](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/index.html) to choose files and find the matching workbench actions.
+
+For a live artwork demonstration, open Application lab → Artwork differences. Run with seed 7, PCA, 3 components, quantile 0.95 and strength 0.6. Compare the error map with the 18 simulated changed positions. Raise quantile to 0.99 and rerun; then restore 0.95 and lower strength to 0.2. Keep the seed fixed and download each result JSON. The in-app manual includes these steps.
+
+![Artwork differences](https://raw.githubusercontent.com/Kalvar/python-GreyTheory/master/docs/images/workbench-art.en.png)
+
+This example uses synthetic spectral maps, not artwork photographs. Real paired-map upload is not available in this lab. A flagged region is a lead for examination, not evidence of retouching or authenticity.
+
+**AI silk-painting images** — In Application lab → Artwork, choose **AI silk-painting images** and run the defaults. This reads the two bundled PNGs through patch features → Grey windows → GreyPCA. Hide/show the overlay, then raise quantile to 0.99 and rerun.
+
+[Images, computed CSV / JSON and case sources](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/index.html) · `python3 run.py artwork`
+
+[Open the interactive review and experiment results](https://github.com/Kalvar/python-GreyTheory/blob/master/data/demo/artwork/review/index.html) — The paired-image view ranks corresponding feature changes for human inspection. The spectral view compares six methods with separate normal calibration and held-out simulation. An identical-PNG control shows why legacy reconstruction flags are not change counts. The region cards demonstrate observations, alternative explanations and next examinations; they are not an expert endorsement.
 
 ### More demos
 
@@ -102,6 +116,73 @@ Try delivery routes, driver assignment, artwork spectral differences, order fore
 
 > [!NOTE]
 > These examples use synthetic data. They demonstrate the workflow, not production, chemical, or forensic accuracy. Route search and assignment use dedicated optimizers; Grey supplies preference scores. Image distances do not identify writers, and artwork anomalies are investigation leads.
+
+## Stability and optimization
+
+[GUI walkthrough](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/README.md#four-step-optimization-demo)
+
+Quick entry point: `analyze_features()` combines ranking stability, GreyPCA regression search and optional normal-data calibration. `choose_options()` compares named multi-objective alternatives.
+
+```python
+import numpy as np
+from greytheory import analyze_features
+
+features = np.random.default_rng(7).normal(size=(120, 4))
+target = 2 * features[:60, 0] - features[:60, 1]
+result = analyze_features(features[:60], target, normal_data=features[60:90])
+predictions = result.predict(features[90:])
+```
+
+[Quick functions](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#quick-functions)
+
+Check GRA ranking stability, calibrate difference thresholds on separate normal data, search GreyPCA regression settings, and keep Pareto trade-offs among candidate designs.
+
+```bash
+python3 run.py optimize
+```
+
+[Four-step Python guide](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#stability-calibration-and-optimization). The synthetic example needs a repository checkout. Search uses finite random trials and fold-local caching; validation scores are tuning results, not independent test accuracy. Pareto results apply to supplied candidates.
+
+## Research models
+
+Experimental equal-step forecasting and quality regression: RL-FGM core, GINN/FGINN engineering variants and independently designed Grey–Fuzzy GPR.
+
+```python
+from greytheory import forecast_series
+
+values = [20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+future = forecast_series(values, steps=3, method="rlfgm")
+print(future)
+```
+
+### GreyPCA + research models
+
+All four models can use `pca`, `sparse`, `kernel`, `robust`, `robust_sparse` or `adv`. Forecast input is a time-by-channel matrix; output restores the original columns. For GINN/FGINN, change `method`. Backend options go in `pca_params={"method_params": {...}}`.
+
+```python
+import numpy as np
+from greytheory import forecast_series, predict_quality
+
+time = np.arange(24.)
+history = np.column_stack([20 + time + np.sin(time), 40 + 0.3*time + np.cos(time)])
+future = forecast_series(history, steps=3, method="rlfgm",
+                         pca_method="adv", n_components=2, order=1)
+
+random = np.random.default_rng(7)
+features = random.normal(size=(60, 4))
+quality = 100 + 5*features[:, 0] + 2*features[:, 1]**2
+result = predict_quality(features[:40], quality[:40], features[40:],
+                         pca_method="pca", n_components=2)
+print(future, result["prediction"])
+```
+
+In Workbench, choose Research models → Use PCA: on. Forecast components need a declared training-only positive shift; this affects grey models. Quality reliability applies only to retained components.
+
+```bash
+python3 run.py research
+```
+
+[Methods, differences and measured limitations](https://github.com/Kalvar/python-GreyTheory/blob/master/docs/guide.md#experimental-research-models)
 
 ## Documentation
 

@@ -15,7 +15,7 @@ async function workbenchCall(endpoint,body){
     if(d&&body.method==='pca'&&(body.engine||'pca')==='pca'&&body.components===2&&!body.component_top_k&&body.normalize_counts!==false&&same(body.features,d.defaults)&&body.target===(d.targets[0]||'')&&same(body.method_params||{},{})&&(g.rho??.5)===.5&&(g.normalization??'zscore')==='zscore'&&(g.direction??'either')==='either')return structuredClone(data.analysis[d.id]);
   }
   if(endpoint==='/api/scenario'){
-    const value=data.scenarios[body.scenario];if(value&&same(body.parameters,value.parameters)&&same(body.method_params||{},{})&&!body.series)return structuredClone(value);
+    const value=data.scenarios[body.scenario==='research'?'research_'+body.parameters.tool+(body.parameters.pca_mode==='on'?'_pca':''):body.scenario==='art'&&body.parameters.art_source==='ai_images'?'art_images':body.scenario];if(value&&same(body.parameters,value.parameters)&&same(body.method_params||{},{})&&!body.series)return structuredClone(value);
   }
   if(endpoint==='/api/handwriting'&&body.demo&&body.method==='pca'&&same(body.method_params||{},{}))return structuredClone(data.handwriting);
   pendingRequest={format:'greytheory-request-v1',endpoint,body:structuredClone(body),source:lastSource};

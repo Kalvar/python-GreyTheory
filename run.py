@@ -65,7 +65,22 @@ def main(argv=None):
     handwriting.add_argument("references", type=Path)
     handwriting.add_argument("--output", type=Path, default=root / "artifacts/handwriting")
     handwriting.add_argument("--pca", choices=("pca", "sparse", "kernel", "robust", "robust_sparse", "adv"), default="pca")
+    artwork = commands.add_parser("artwork", help="compare the bundled AI artwork or an aligned image pair")
+    artwork.add_argument("--reference", type=Path)
+    artwork.add_argument("--observed", type=Path)
+    artwork.add_argument("--output", type=Path, default=root / "artifacts/artwork")
+    artwork.add_argument("--pca", choices=("pca", "sparse", "kernel", "robust", "robust_sparse", "adv"), default="pca")
+    optimize = commands.add_parser("optimize", help="run stability, calibration, search and Pareto examples")
+    optimize.add_argument("--output", type=Path, default=root / "artifacts/optimization/report.json")
+    research = commands.add_parser("research", help="compare experimental RL-FGM, GINN, FGINN and Grey-Fuzzy GPR")
+    research.add_argument("--output", type=Path, default=root / "artifacts/research_models/report.json")
     args = parser.parse_args(argv)
+    if args.command == "artwork":
+        if bool(args.reference) != bool(args.observed):
+            parser.error("provide both --reference and --observed")
+        for path in (args.reference, args.observed):
+            if path and not path.is_file():
+                parser.error(f"image does not exist: {path}")
     if args.command == "handwriting":
         if not args.query.is_file():
             parser.error(f"query image does not exist: {args.query}")
@@ -74,6 +89,16 @@ def main(argv=None):
     if args.command == "workbench" and args.output and not args.request:
         parser.error("--output requires --request")
     try:
+        if args.command == "research":
+            python = prepare_environment(root)
+            return subprocess.call([
+                str(python), "-m", "examples.research_models", "--output", str(args.output.resolve()),
+            ], cwd=root)
+        if args.command == "optimize":
+            python = prepare_environment(root)
+            return subprocess.call([
+                str(python), "-m", "examples.grey_optimization", "--output", str(args.output.resolve()),
+            ], cwd=root)
         if args.command == "workbench":
             extras = ("images",) if args.request else ("workbench",)
             python = prepare_environment(root, extras=extras)
@@ -82,6 +107,12 @@ def main(argv=None):
                 command.extend(["--request", str(args.request.resolve())])
             if args.output:
                 command.extend(["--output", str(args.output.resolve())])
+            return subprocess.call(command, cwd=root)
+        if args.command == "artwork":
+            python = prepare_environment(root, extras=("images",))
+            command = [str(python), "-m", "examples.demos.artwork", "--output", str(args.output.resolve()), "--pca", args.pca]
+            if args.reference:
+                command.extend(["--reference", str(args.reference.resolve()), "--observed", str(args.observed.resolve())])
             return subprocess.call(command, cwd=root)
         if args.command == "handwriting":
             python = prepare_environment(root, extras=("images",))
