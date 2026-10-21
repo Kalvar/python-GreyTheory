@@ -151,6 +151,16 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
+Legacy calls `model.forecast(2)` and `model.forecast_convolution(1, 4)` are also supported. Use `predict(2)` when you only need the next two numeric values; `forecast(2)` refits stored data and updates the configured horizon.
+
+```python
+model = GM11().set_data(series)
+results = model.forecast(2)
+print(model.predict(2))
+windows = model.forecast_convolution(1, 4)
+print(model.predict(2))
+```
+
 Use at least three observations. See Convolution below for two-level window forecasting.
 
 Read coefficients from `model.coefficients` and solver diagnostics from `model.diagnostics`.

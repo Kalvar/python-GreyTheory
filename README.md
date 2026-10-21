@@ -49,6 +49,8 @@ model = GM11(background_mode="corrected").fit(series)
 print(model.predict(2))
 ```
 
+Legacy calls `model.forecast(2)` and `model.forecast_convolution(1, 4)` are also supported. Use `predict(2)` when you only need the next two numeric values; `forecast(2)` refits stored data and updates the configured horizon.
+
 ## Choose a PCA method
 
 Set `method` on `GreyPCA`. The same choices are available in the workbench.

@@ -54,6 +54,11 @@ def main():
         assert np.isfinite(model.coefficients).all()
     g.gm11.fit([2, 3, 4, 5, 6])
     assert g.gm11.predict(2).shape == (2,)
+    legacy = GM11().set_data([2, 3, 4, 5, 6, 7])
+    assert len(legacy.forecast(2)) == 7
+    assert len(legacy.forecast_convolution(1, 4)) == 3
+    assert legacy.predict(2).shape == (2,)
+    np.testing.assert_array_equal(GM11(rank_policy="allow").fit([0, 0, 0, 0]).predict(2), [0, 0])
     queue = ModelQueue([
         GM0N().set_data([[1], [2], [3], [4], [5]], [2, 4, 7, 8, 11]),
         GM1N().set_data([[1], [2], [3], [4], [5]], [2, 4, 7, 8, 11]),

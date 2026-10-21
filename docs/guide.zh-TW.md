@@ -158,6 +158,16 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
+舊用法 `model.forecast(2)` 與 `model.forecast_convolution(1, 4)` 也可使用。只要接下來兩筆數值時用 `predict(2)`；`forecast(2)` 會重新計算已存資料並更新預測期數設定。
+
+```python
+model = GM11().set_data(series)
+results = model.forecast(2)
+print(model.predict(2))
+windows = model.forecast_convolution(1, 4)
+print(model.predict(2))
+```
+
 至少需要三筆資料。滑動窗口的兩層預測見下方 Convolution 範例。
 
 係數看 `model.coefficients`，求解狀況看 `model.diagnostics`。

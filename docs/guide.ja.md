@@ -145,6 +145,16 @@ print(model.predict(2))
 print(model.metrics)
 ```
 
+従来の `model.forecast(2)` と `model.forecast_convolution(1, 4)` も利用できます。次の二点の数値だけなら `predict(2)` を使います。`forecast(2)` は保存データを再計算し、予測期間の設定を更新します。
+
+```python
+model = GM11().set_data(series)
+results = model.forecast(2)
+print(model.predict(2))
+windows = model.forecast_convolution(1, 4)
+print(model.predict(2))
+```
+
 三点以上のデータが必要です。二段階のウィンドウ予測は下の Convolution を参照してください。
 
 係数は `model.coefficients`、計算の診断は `model.diagnostics` で確認できます。

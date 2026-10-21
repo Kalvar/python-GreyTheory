@@ -98,8 +98,14 @@ class GreyGM11(GreyClass):
         self.analyzed_results = results
         return results
 
-    def forecast(self):
-        period = integer(self.period, "period", minimum=0)
+    def forecast(self, period=None):
+        """Fit stored data; optional period retains the original forecast(steps) API.
+
+        Omitting period uses the configured horizon. An explicit period updates it;
+        use predict(steps) for future values without changing the fitted state.
+        """
+        period = integer(self.period if period is None else period, "period", minimum=0)
+        self.period = period
         values = array(self.patterns, name="series", ndim=1, min_rows=3)
         if not self.convolution:
             return self._forecast(values, period)
@@ -128,6 +134,20 @@ class GreyGM11(GreyClass):
         elif period != 1:
             self._forecast(values, period)
         return windows
+
+    def forecast_convolution(self, stride=1, length=4, *, period=None):
+        """Compatibility entry point for the original two-level GM11 convolution.
+
+        Configure the window, then run the same forecast implementation. Returned
+        values are window result lists; predict(steps) returns final future values.
+        """
+        values = array(self.patterns, name="series", ndim=1, min_rows=3)
+        stride = integer(stride, "stride")
+        length = integer(length, "length", minimum=3, maximum=values.size)
+        horizon = integer(self.period if period is None else period, "period", minimum=0)
+        self.stride = stride
+        self.window_size = length
+        return self.forecast(horizon)
 
     def set_data(self, series):
         """Store a private copy of a series without fitting it."""

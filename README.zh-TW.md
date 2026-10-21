@@ -49,6 +49,8 @@ model = GM11(background_mode="corrected").fit(series)
 print(model.predict(2))
 ```
 
+舊用法 `model.forecast(2)` 與 `model.forecast_convolution(1, 4)` 也可使用。只要接下來兩筆數值時用 `predict(2)`；`forecast(2)` 會重新計算已存資料並更新預測期數設定。
+
 ## 選擇 PCA 方法
 
 在 `GreyPCA` 指定 `method`，操作介面也能選同樣的方法。
