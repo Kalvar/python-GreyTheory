@@ -1,6 +1,6 @@
 # GreyTheory
 
-**English** | [繁體中文](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md) | [日本語](https://github.com/Kalvar/python-GreyTheory/blob/master/README.ja.md)
+**English** | [繁體中文](https://github.com/Kalvar/python-GreyTheory/blob/master/README.zh-TW.md) | [日本語](https://github.com/Kalvar/python-GreyTheory/blob/master/README.ja.md) | [XERJ Hub](https://hub.xerj.org/corpus/kalvar--python-greytheory)
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3977ab)](https://github.com/Kalvar/python-GreyTheory/blob/master/pyproject.toml)
 [![MIT License](https://img.shields.io/badge/License-MIT-36a88a)](https://github.com/Kalvar/python-GreyTheory/blob/master/LICENSE)
